@@ -1,4 +1,4 @@
-#include "db.h"
+#include "postgresdb.h"
 
 #include "log.h"
 
@@ -27,7 +27,7 @@ static char* read_file_migrate(const char* path)
     return data;
 }
 
-void run_migration(PGconn* conn)
+void run_migrations(PGconn* conn)
 {
     PGresult* res;
 

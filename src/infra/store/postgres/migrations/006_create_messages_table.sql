@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGSERIAL PRIMARY KEY,
+    -- Временные метки
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    deleted_at TIMESTAMPTZ,
+    -- Пользователи
+    chat_id BIGINT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    sender_uid BIGINT NOT NULL REFERENCES user_cores(user_uid) ON DELETE CASCADE, -- Отправитель
+    -- Контент
+    content TEXT NOT NULL,
+    content_type VARCHAR(32) CHECK (content_type IN ('text', 'image', 'video', 'file', 'voice')) DEFAULT 'text',
+    attachments JSONB,
+    -- Доп. поля
+    is_edited BOOLEAN DEFAULT FALSE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    is_pinned BOOLEAN DEFAULT FALSE
+);
+
+CREATE OR REPLACE FUNCTION set_updated_at_messages()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_messages_trigger
+    BEFORE UPDATE ON messages
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at_messages();
+
+-- +INDEXES
+CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_messages_chat_id_id ON messages(chat_id, id DESC);
+-- +INDEXES
+
+-- -INDEXES
+-- DROP INDEX IF EXISTS idx_messages_chat_id;
+-- DROP INDEX IF EXISTS idx_messages_chat_id_id;
+-- -INDEXES
+
+-- DROP TRIGGER IF EXISTS set_updated_at_messages_trigger ON messages;
+-- DROP FUNCTION IF EXISTS set_updated_at_messages();
+-- DROP TABLE IF EXISTS messages;

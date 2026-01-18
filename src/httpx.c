@@ -1,12 +1,12 @@
 #include "httpx.h"
 
-#include "db.h"
+#include "routes.h"
+#include "postgresdb.h"
+#include "middlewarex.h"
 
 #include <libchttpx/libchttpx.h>
 
 static void _http_cors();
-static void _http_middlewares();
-static void _http_routes();
 
 void http_init(void)
 {
@@ -27,17 +27,21 @@ void http_init(void)
     serv.write_timeout_sec = 120;
     serv.idle_timeout_sec = 90;
 
-    /* Inital database */
+    /* Inital database, migrations */
     PGconn* conn = db_conn();
 
+    run_migrations(conn);
+
     /* Inital cors */
-    _http_cors(&serv);
+    _http_cors();
 
     /* Initial middlewares */
-    _http_middlewares(&serv);
+    cHTTPX_MiddlewareRateLimiter(5, 1);
+    cHTTPX_MiddlewareUse(authenticate_middleware);
+    cHTTPX_MiddlewareUse(email_confirmed_middleware);
 
     /* Initial routes */
-    _http_routes(&serv);
+    routes();
 
     cHTTPX_Listen();
 }
@@ -51,14 +55,4 @@ static void _http_cors()
 
     cHTTPX_Cors(allowed_origins, (sizeof(allowed_origins) / sizeof(allowed_origins[0])), NULL,
                 NULL);
-}
-
-static void _http_middlewares()
-{
-}
-
-static void _http_routes()
-{
-    // cHTTPX_Route(cHTTPX_MethodPost, "/auth/signin", auth_signin_h);
-    // cHTTPX_Route(cHTTPX_MethodPost, "/auth/signup", auth_signup_h);
 }

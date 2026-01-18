@@ -1,0 +1,30 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    user_uid BIGINT NOT NULL UNIQUE REFERENCES user_cores(user_uid) ON DELETE CASCADE,
+    avatar VARCHAR(255),
+    name VARCHAR(25) NOT NULL,
+    username VARCHAR(30) NOT NULL UNIQUE,
+    overview VARCHAR(125),
+    phone VARCHAR(18)
+);
+
+CREATE OR REPLACE FUNCTION set_updated_at_user_profiles()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_user_profiles_trigger
+    BEFORE UPDATE ON user_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at_user_profiles();
+
+-- DROP TRIGGER IF EXISTS set_updated_at_user_profiles_trigger ON user_profiles;
+-- DROP FUNCTION IF EXISTS set_updated_at_user_profiles();
+-- DROP TABLE IF EXISTS user_profiles;

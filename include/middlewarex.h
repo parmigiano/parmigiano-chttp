@@ -1,0 +1,10 @@
+#ifndef MIDDLEWAREX_H
+#define MIDDLEWAREX_H
+
+#include <libchttpx/libchttpx.h>
+
+chttpx_middleware_result_t authenticate_middleware(chttpx_request_t *req, chttpx_response_t *res);
+
+chttpx_middleware_result_t email_confirmed_middleware(chttpx_request_t *req, chttpx_response_t *res);
+
+#endif

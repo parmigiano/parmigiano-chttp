@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS chats (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    chat_type VARCHAR(16) NOT NULL CHECK (chat_type IN ('private', 'group', 'channel')), -- for 1:1 - 'private'
+    title TEXT
+);
+
+CREATE OR REPLACE FUNCTION set_updated_at_chats()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_chats_trigger
+    BEFORE UPDATE ON chats
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at_chats();
+
+-- DROP TRIGGER IF EXISTS set_updated_at_chats_trigger ON chats;
+-- DROP FUNCTION IF EXISTS set_updated_at_chats();
+-- DROP TABLE IF EXISTS chats;

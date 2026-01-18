@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS user_public_keys (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
+    user_uid BIGINT NOT NULL UNIQUE,
+    public_key TEXT UNIQUE
+);
+
+CREATE OR REPLACE FUNCTION set_updated_at_user_public_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_user_public_keys_trigger
+    BEFORE UPDATE ON user_public_keys
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at_user_public_keys();
+
+-- DROP TRIGGER IF EXISTS set_updated_at_user_public_keys_trigger ON user_public_keys;
+-- DROP FUNCTION IF EXISTS set_updated_at_user_public_keys();
+-- DROP TABLE IF EXISTS user_public_keys;
