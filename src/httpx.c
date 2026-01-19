@@ -36,6 +36,7 @@ void http_init(void)
     _http_cors();
 
     /* Initial middlewares */
+    cHTTPX_MiddlewareRecovery();
     cHTTPX_MiddlewareRateLimiter(5, 1);
     cHTTPX_MiddlewareUse(authenticate_middleware);
     cHTTPX_MiddlewareUse(email_confirmed_middleware);

@@ -27,6 +27,17 @@ static char* read_file_migrate(const char* path)
     return data;
 }
 
+static int cmp_migration(const void* a, const void* b)
+{
+    const char* fa = *(const char**)a;
+    const char* fb = *(const char**)b;
+
+    int va = atoi(fa);
+    int vb = atoi(fb);
+
+    return va - vb;
+}
+
 void run_migrations(PGconn* conn)
 {
     PGresult* res;
@@ -45,46 +56,51 @@ void run_migrations(PGconn* conn)
     }
 
     struct dirent* ent;
+    char* files[256];
+    int count = 0;
 
     while ((ent = readdir(dir)))
     {
-        if (!strstr(ent->d_name, ".sql"))
+        if (strstr(ent->d_name, ".sql"))
         {
-            continue;
+            files[count++] = strdup(ent->d_name);
         }
+    }
+    closedir(dir);
 
-        int version = atoi(ent->d_name);
-        if (version == 0)
-        {
-            continue;
-        }
+    qsort(files, count, sizeof(char*), cmp_migration);
+
+    for (int i = 0; i < count; i++)
+    {
+        int version = atoi(files[i]);
 
         char check_sql[256];
-        snprintf(check_sql, sizeof(check_sql), "SELECT 1 FROM schema_migrations WHERE version = %d",
+        snprintf(check_sql, sizeof(check_sql), "SELECT 1 FROM schema_migrations WHERE version=%d",
                  version);
 
         res = PQexec(conn, check_sql);
-        int applied = PQntuples(res) > 0;
-        PQclear(res);
-
-        if (applied)
+        if (PQntuples(res) > 0)
         {
+            PQclear(res);
+            free(files[i]);
             continue;
         }
+        PQclear(res);
 
         char path[512];
-        snprintf(path, sizeof(path), "%s/%s", FOLDER_SQL_MIGRATIONS, ent->d_name);
+        snprintf(path, sizeof(path), "%s/%s", FOLDER_SQL_MIGRATIONS, files[i]);
 
         char* sql = read_file_migrate(path);
         if (!sql)
         {
-            fprintf(stderr, "Cannot read %s\n", path);
+            free(files[i]);
             continue;
         }
 
-        log_info("Applying migration %s\n", ent->d_name);
+        log_info("Applying migration %s", files[i]);
 
-        PQexec(conn, "BEGIN");
+        res = PQexec(conn, "BEGIN");
+        PQclear(res);
 
         res = PQexec(conn, sql);
         free(sql);
@@ -94,7 +110,6 @@ void run_migrations(PGconn* conn)
             fprintf(stderr, "Migration failed: %s\n", PQerrorMessage(conn));
             PQclear(res);
             PQexec(conn, "ROLLBACK");
-            closedir(dir);
             exit(1);
         }
         PQclear(res);
@@ -106,8 +121,9 @@ void run_migrations(PGconn* conn)
         res = PQexec(conn, insert_sql);
         PQclear(res);
 
-        PQexec(conn, "COMMIT");
-    }
+        res = PQexec(conn, "COMMIT");
+        PQclear(res);
 
-    closedir(dir);
+        free(files[i]);
+    }
 }
