@@ -119,10 +119,10 @@ db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t*
 /* Get user info by user_uid */
 user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid);
 /* Get user_core by email */
-user_core_t* db_user_core_get_by_email(PGconn* conn, const char *email);
+user_core_t* db_user_core_get_by_email(PGconn* conn, char *email);
 /* Get user_core by user_uid */
 user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid);
 /* Update user email confirm by user_uid */
-db_result_t* db_user_core_upd_email_confirm(PGconn* conn, bool confirm, uint64_t user_uid);
+db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* email);
 
 #endif

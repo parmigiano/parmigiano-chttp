@@ -16,7 +16,7 @@ static const char* SimplePasswords[SIMPLE_PASSWORDS_COUNT] = {
     "trustme1",  "love1234",    "happy123",  "soccer12",   "cookie12",  "pepper12",
     "friends1",  "qwertyuiop",  "asdfghjkl", "qwertyui12", "hello2024", "welcome2024",
     "password!", "password@1",  "qwerty!1",  "test1234",   "demo1234",  "user1234",
-    "root1234",  "qwerty#1",    "iloveyou1",
+    "root1234",  "qwerty#1",
 };
 
 bool is_valid_email(const char* email)

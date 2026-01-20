@@ -40,7 +40,7 @@ static int cmp_migration(const void* a, const void* b)
 
 void run_migrations(PGconn* conn)
 {
-    PGresult* res;
+    PGresult* res = NULL;
 
     PQexec(conn, "CREATE TABLE IF NOT EXISTS schema_migrations ("
                  "version INT PRIMARY KEY, "

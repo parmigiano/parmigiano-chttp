@@ -1,6 +1,9 @@
 #include "redis/redis.h"
 #include "redis/redis_verifycode.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 static char* verifycode_key(const char* key)
 {
     char* buffer = malloc(strlen(key) + 12);

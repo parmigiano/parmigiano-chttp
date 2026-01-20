@@ -55,7 +55,14 @@ chttpx_response_t auth_login_handler(chttpx_request_t* req)
     /* To lower email */
     to_lower(payload.email);
 
-    user_core_t* user = db_user_core_by_email(http_server->conn, payload.email);
+    /* Validation email */
+    if (!is_valid_email(payload.email))
+    {
+        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
+                              "{\"error\": \"неверный или несуществующий email\"}");
+    }
+
+    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
         return cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"пользователь не был найден\"}");
@@ -63,9 +70,9 @@ chttpx_response_t auth_login_handler(chttpx_request_t* req)
 
     /* Verify code */
     /* ----------- */
-    int code;
+    int codetmp;
 
-    if (redis_verifycode_get(payload.email, &code))
+    if (redis_verifycode_get(payload.email, &codetmp))
     {
         return cHTTPX_ResJson(cHTTPX_StatusOK,
                               "{\"message\": \"Код подтверждения уже отправлен на вашу почту.\"}");
@@ -135,9 +142,9 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
 
     /* Verify code */
     /* ----------- */
-    int code;
+    int codetmp;
 
-    if (redis_verifycode_get(payload.email, &code))
+    if (redis_verifycode_get(payload.email, &codetmp))
     {
         return cHTTPX_ResJson(cHTTPX_StatusCreated,
                               "{\"message\": \"Код подтверждения уже отправлен на вашу почту.\"}");
@@ -374,7 +381,7 @@ chttpx_response_t auth_verify_handler(chttpx_request_t* req)
                               "{\"error\": \"не удалось выполнить операцию с базой данных\"}");
     }
 
-    user_core_t* user = db_user_core_by_email(http_server->conn, payload.email);
+    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
         return cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"пользователь не был найден\"}");

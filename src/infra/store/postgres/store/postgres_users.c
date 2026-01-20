@@ -177,9 +177,9 @@ user_core_t* db_user_core_get_by_email(PGconn* conn, char* email)
     db_result_set_t* rc = NULL;
 
     const char* query = "SELECT * FROM user_cores WHERE user_uid = $1 LIMIT 1";
-    const char params[1] = {email};
+    const char* params[1] = {email};
 
-    db_result_t* result = execute_select(conn, query, params, 1, &rc);
+    db_result_t result = execute_select(conn, query, params, 1, &rc);
 
     if (result != DB_OK || !rc || !rc->n_rows == 0)
     {
@@ -238,7 +238,7 @@ user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid)
     return user;
 }
 
-db_result_t* db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* email)
+db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* email)
 {
     const char* query = "UPDATE user_cores SET email_confirm = $1 WHERE email = $2";
     const char* params[2] = {confirm ? "true" : "false", email};
