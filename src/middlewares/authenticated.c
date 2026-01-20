@@ -1,7 +1,11 @@
+#include "httpx.h"
 #include "middlewarex.h"
 
-#include <libchttpx/libchttpx.h>
+#include "redis/redis_session.h"
+#include "postgres/postgres_users.h"
+
 #include <string.h>
+#include <libchttpx/libchttpx.h>
 
 chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx_response_t* res)
 {
@@ -20,37 +24,29 @@ chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx
 
     if (!session_id)
     {
-        session_id = cHTTPX_Cookie(req, "auth-token");
+        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
+                              "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
+        return out;
     }
 
-    if (!session_id)
+    session_t* session = redis_session_get(session_id);
+    if (!session)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
                               "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
         return out;
     }
 
-    // session_t* session = redis_session_get(session_id);
-    // if (!session)
-    // {
-    //     *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"пожалуйста,
-    //     подключитесь к учетной записи\"}"); return out;
-    // }
+    user_info_t* user = db_user_info_get_by_uid(http_server->conn, session->user_uid);
+    if (!user)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
+                              "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
+        return out;
+    }
 
-    // user_t* user = db_get_user_by_uid(session->user_uid);
-    // if (!user)
-    // {
-    //     *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"пожалуйста,
-    //     подключитесь к учетной записи\"}"); return out;
-    // }
+    req->context = user;
 
-    // auth_token_t *auth = malloc(sizeof(auth_token_t));
-    // auth->user = user;
-    // strncpy(auth->session_id, session_id, sizeof(auth->session_id));
-
-    // req->context = auth;
-    /* auth_token_t *identity = (auth_token_t *)req->context; */
-
-    // redis_session_refresh(session_id);
+    redis_session_refresh(session_id);
     return next;
 }

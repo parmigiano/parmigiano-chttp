@@ -21,7 +21,7 @@ void http_init(void)
     }
 
     /* cHTTPX Server */
-    chttpx_serv_t serv;
+    chttpx_serv_t serv = {0};
 
     if (cHTTPX_Init(&serv, HTTPX_SERVER_PORT) != 0)
     {

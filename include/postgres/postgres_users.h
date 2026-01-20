@@ -18,7 +18,7 @@ typedef struct {
     time_t updated_at;
     uint64_t user_uid;
     char *email;
-    uint8_t email_confirmed;
+    bool email_confirm;
     char *password;
 } user_core_t;
 
@@ -49,7 +49,6 @@ typedef struct {
     time_t created_at;
     time_t updated_at;
     uint64_t user_uid;
-    bool online;
 } user_active_t;
 
 typedef struct {
@@ -69,19 +68,16 @@ typedef struct {
     uint64_t id;
     time_t created_at;
     uint64_t user_uid;
-    bool online;
-    time_t last_online_date;
-    char *avatar;            
+    char *avatar;
     char *name;
     char *username;
-    bool username_visible; 
-    char *email;             
-    bool email_visible;    
-    bool email_confirmed;  
-    char *phone;             
-    bool phone_visible;    
-    char *overview;           
-    char *access_token;     
+    bool username_visible;
+    char *email;
+    bool email_visible;
+    bool email_confirm;
+    char *phone;      
+    bool phone_visible;
+    char *overview;   
 } user_info_t;
 
 typedef struct {
@@ -90,8 +86,6 @@ typedef struct {
     char *avatar;
     uint64_t user_uid;
     char *email;
-    bool online;
-    time_t last_online_date;
     char *last_message;
     time_t *last_message_date;
     uint16_t unread_message_count;
@@ -105,14 +99,14 @@ typedef struct {
     char *avatar;
     char *username;
     char *email;
-    bool email_confirmed;
+    bool email_confirm;
 } user_minimal_t;
 /* ------------ */
 /* table. USERS */
 
 /* SQLs */
 /* Create user_core */
-db_result_t db_user_core_create(PGconn *conn, user_core_t *user);
+db_result_t db_user_core_create(PGconn* conn, user_core_t* user);
 /* Create user_profile */
 db_result_t db_user_profile_create(PGconn* conn, user_profile_t* user);
 /* Create user_profile_access */
@@ -120,9 +114,15 @@ db_result_t db_user_profile_access_create(PGconn* conn, user_profile_access_t* u
 /* Create user_profile_active */
 db_result_t db_user_profile_active_create(PGconn* conn, user_active_t* user);
 /* Create FULL user */
-db_result_t db_user_create(PGconn *conn, user_core_t *user_core, user_profile_t* user_profile, 
+db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t* user_profile, 
                                 user_profile_access_t* user_profile_access, user_active_t* user_active);
+/* Get user info by user_uid */
+user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid);
+/* Get user_core by email */
+user_core_t* db_user_core_get_by_email(PGconn* conn, const char *email);
 /* Get user_core by user_uid */
-user_core_t* db_user_core_by_uid(PGconn *conn, uint64_t user_uid);
+user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid);
+/* Update user email confirm by user_uid */
+db_result_t* db_user_core_upd_email_confirm(PGconn* conn, bool confirm, uint64_t user_uid);
 
 #endif

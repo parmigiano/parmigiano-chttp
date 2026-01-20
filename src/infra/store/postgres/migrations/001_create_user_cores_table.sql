@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS user_cores (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
     user_uid BIGINT NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
-    email_confirmed BOOLEAN DEFAULT FALSE,
-    password VARCHAR(255) NOT NULL
+    email_confirm BOOLEAN DEFAULT FALSE,
+    password VARCHAR(255)
 );
 
 CREATE OR REPLACE FUNCTION set_updated_at_user_cores()

@@ -38,7 +38,7 @@ static int json_to_session(const char* json, session_t* sess)
     return 1;
 }
 
-char* session_create(const session_t* sess)
+char* redis_session_create(const session_t* sess)
 {
     char* json = session_to_json(sess);
     if (!json)
@@ -76,7 +76,7 @@ error:
     return NULL;
 }
 
-session_t* session_get(const char* session_id)
+session_t* redis_session_get(const char* session_id)
 {
     char* key = session_key(session_id);
 
@@ -101,7 +101,7 @@ session_t* session_get(const char* session_id)
     return sess;
 }
 
-int session_refresh(const char* session_id)
+int redis_session_refresh(const char* session_id)
 {
     char* key = session_key(session_id);
     redisReply* r = redisCommand(redis, "EXPIRE %s %d", key, REDIS_SESSION_TTL);
@@ -113,7 +113,7 @@ int session_refresh(const char* session_id)
     return ok;
 }
 
-int session_delete(const char* session_id)
+int redis_session_delete(const char* session_id)
 {
     char* key = session_key(session_id);
     redisReply* r = redisCommand(redis, "DEL %s", key);

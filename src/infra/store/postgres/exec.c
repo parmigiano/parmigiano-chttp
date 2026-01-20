@@ -102,21 +102,21 @@ db_result_t execute_select(PGconn* conn, const char* query, const char** params,
     }
 }
 
-void free_result_set(db_result_set_t* rs)
+void free_result_set(db_result_set_t* rc)
 {
-    if (!rs)
+    if (!rc)
         return;
 
-    for (int i = 0; i < rs->n_rows; i++)
+    for (int i = 0; i < rc->n_rows; i++)
     {
-        for (int j = 0; j < rs->rows[i].n_columns; j++)
+        for (int j = 0; j < rc->rows[i].n_columns; j++)
         {
-            free(rs->rows[i].columns[j]);
+            free(rc->rows[i].columns[j]);
         }
 
-        free(rs->rows[i].columns);
+        free(rc->rows[i].columns);
     }
 
-    free(rs->rows);
-    free(rs);
+    free(rc->rows);
+    free(rc);
 }

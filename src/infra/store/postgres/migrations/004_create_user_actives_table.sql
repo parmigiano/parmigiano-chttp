@@ -2,8 +2,7 @@ CREATE TABLE IF NOT EXISTS user_actives (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
-    user_uid BIGINT NOT NULL UNIQUE REFERENCES user_cores(user_uid) ON DELETE CASCADE,
-    online BOOLEAN DEFAULT TRUE
+    user_uid BIGINT NOT NULL UNIQUE REFERENCES user_cores(user_uid) ON DELETE CASCADE
 );
 
 CREATE OR REPLACE FUNCTION set_updated_at_user_actives()

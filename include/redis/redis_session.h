@@ -8,12 +8,12 @@ typedef struct {
     uint64_t expires_at;
 } session_t;
 
-char *session_create(const session_t *sess);
+char* redis_session_create(const session_t* sess);
 
-session_t *session_get(const char *session_id);
+session_t* redis_session_get(const char* session_id);
 
-int session_refresh(const char *session_id);
+int redis_session_refresh(const char* session_id);
 
-int session_delete(const char *session_id);
+int redis_session_delete(const char* session_id);
 
 #endif

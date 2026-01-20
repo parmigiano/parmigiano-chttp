@@ -15,6 +15,37 @@ typedef enum {
     DB_TIMEOUT = -2
 } db_result_t;
 
+inline char* parse_pg_strdup(const char* s)
+{
+    return s ? strdup(s) : NULL;
+}
+
+inline time_t parse_pg_timestamp(const char* s)
+{
+    if (!s) return 0;
+
+    int year, mon, day, hour, min, sec;
+    if (sscanf(s, "%d-%d-%d %d:%d:%d", &year, &mon, &day, &hour, &min, &sec) != 6)
+    {
+        return 0;
+    }
+
+    struct tm tm = {0};
+    tm.tm_year = year - 1900;
+    tm.tm_mon  = mon - 1;
+    tm.tm_mday = day;
+    tm.tm_hour = hour;
+    tm.tm_min  = min;
+    tm.tm_sec  = sec;
+
+    return mktime(&tm) - timezone;
+}
+
+inline bool parse_pg_bool(const char* s)
+{
+    return s && (s[0] == 't' || s[0] == '1');
+}
+
 /* Connection to database */
 PGconn* db_conn(void);
 
@@ -43,6 +74,6 @@ db_result_t execute_sql(PGconn *conn, const char *query, const char **params, in
 db_result_t execute_select(PGconn *conn, const char *query, const char **params, int n_params, db_result_set_t **out_result);
 
 /* free memory SELECT */
-void free_result_set(db_result_set_t *rs);
+void free_result_set(db_result_set_t *rc);
 
 #endif
