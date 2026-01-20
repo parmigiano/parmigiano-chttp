@@ -1,0 +1,3 @@
+sudo apt install libargon2-1 libargon2-dev
+sudo apt install libcurl4-openssl-dev
+sudo apt install libhiredis-dev

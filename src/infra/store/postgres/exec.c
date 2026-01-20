@@ -1,4 +1,4 @@
-#include "postgresdb.h"
+#include "postgres/postgres.h"
 
 db_result_t execute_sql(PGconn* conn, const char* query, const char** params, int n_params)
 {

@@ -9,6 +9,8 @@ typedef struct {
     PGconn* conn;
 } httpx_server_t;
 
+extern httpx_server_t *http_server;
+
 void http_init(void);
 
 #endif
