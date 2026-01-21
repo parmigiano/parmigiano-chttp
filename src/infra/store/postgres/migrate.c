@@ -75,8 +75,7 @@ void run_migrations(PGconn* conn)
         int version = atoi(files[i]);
 
         char check_sql[256];
-        snprintf(check_sql, sizeof(check_sql), "SELECT 1 FROM schema_migrations WHERE version=%d",
-                 version);
+        snprintf(check_sql, sizeof(check_sql), "SELECT 1 FROM schema_migrations WHERE version=%d", version);
 
         res = PQexec(conn, check_sql);
         if (PQntuples(res) > 0)
@@ -115,8 +114,7 @@ void run_migrations(PGconn* conn)
         PQclear(res);
 
         char insert_sql[256];
-        snprintf(insert_sql, sizeof(insert_sql),
-                 "INSERT INTO schema_migrations(version) VALUES(%d)", version);
+        snprintf(insert_sql, sizeof(insert_sql), "INSERT INTO schema_migrations(version) VALUES(%d)", version);
 
         res = PQexec(conn, insert_sql);
         PQclear(res);

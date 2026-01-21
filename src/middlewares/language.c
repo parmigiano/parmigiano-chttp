@@ -1,0 +1,46 @@
+#include "middlewarex.h"
+
+#include "handlers.h"
+
+#include <libchttpx/libchttpx.h>
+
+chttpx_middleware_result_t language_middleware(chttpx_request_t* req, chttpx_response_t* res)
+{
+    const char* hal = cHTTPX_Header(req, "Accept-Language");
+    char lang_code[3];
+
+    if (!hal)
+    {
+        lang_code[0] = 'e';
+        lang_code[1] = 'n';
+        lang_code[2] = '\0';
+    }
+    else
+    {
+        lang_code[0] = hal[0];
+        lang_code[1] = hal[1];
+        lang_code[2] = '\0';
+    }
+
+    auth_token_t* ctx = (auth_token_t*)req->context;
+    if (!ctx)
+    {
+        ctx = malloc(sizeof(auth_token_t));
+        if (!ctx)
+        {
+            *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.context-initialization", lang_code));
+            return out;
+        }
+
+        ctx->user = NULL;
+        ctx->lang = strdup(lang_code);
+
+        req->context = ctx;
+    }
+    else
+    {
+        ctx->lang = strdup(lang_code);
+    }
+
+    return next;
+}

@@ -20,7 +20,10 @@ int redis_verifycode_create(const char* email, int code)
     if (!key)
         return 1;
 
-    redisReply* r = redisCommand(redis, "SETEX %s %d", key, REDIS_VERIFYCODE_TTL, code);
+    char val[64];
+    snprintf(val, sizeof(val), "%d", code);
+
+    redisReply* r = redisCommand(redis, "SETEX %s %d %s", key, REDIS_VERIFYCODE_TTL, val);
     if (!r)
     {
         free(key);

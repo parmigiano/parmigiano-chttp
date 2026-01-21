@@ -13,6 +13,12 @@
 
 typedef struct
 {
+    char* email;
+    char* password;
+} auth_login_t;
+
+typedef struct
+{
     char* name;
     char* username;
     char* email;
@@ -22,50 +28,49 @@ typedef struct
 typedef struct
 {
     char* email;
-    char* password;
-} auth_login_t;
-
-typedef struct
-{
-    char* email;
     int code;
 } auth_verify_t;
 
-chttpx_response_t auth_login_handler(chttpx_request_t* req)
+void auth_login_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
-    auth_login_t payload;
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    auth_login_t payload = {0};
 
     chttpx_validation_t fields[] = {
-        chttpx_validation_str("email", true, 5, 254, &payload.email),
-        chttpx_validation_str("password", false, 8, 254, &payload.password),
+        chttpx_validation_string("email", &payload.email, true, 5, 254, VALIDATOR_EMAIL),
+        chttpx_validation_string("password", &payload.password, false, 8, 16, VALIDATOR_NONE),
     };
 
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+        goto errorjson;
 
-    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
 
     /* Trim spaces */
     trim_space(payload.email);
     /* To lower email */
     to_lower(payload.email);
 
-    /* Validation email */
-    if (!is_valid_email(payload.email))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"неверный или несуществующий email\"}");
-    }
-
     user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"пользователь не был найден\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
+    }
+
+    /* If user exist password, but not in payload -> 202 */
+    if (user->password && !payload.password)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusAccepted, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.password-required", ctx->lang));
+        goto cleanup;
+    }
+
+    if (user->password && !verify_password(payload.password, user->password))
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
     }
 
     /* Verify code */
@@ -74,8 +79,8 @@ chttpx_response_t auth_login_handler(chttpx_request_t* req)
 
     if (redis_verifycode_get(payload.email, &codetmp))
     {
-        return cHTTPX_ResJson(cHTTPX_StatusOK,
-                              "{\"message\": \"Код подтверждения уже отправлен на вашу почту.\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("code-already-sent", ctx->lang));
+        goto cleanup;
     }
     /* ----------- */
     /* Verify code */
@@ -84,61 +89,81 @@ chttpx_response_t auth_login_handler(chttpx_request_t* req)
     if (RAND_bytes((unsigned char*)&code, sizeof(code)) != 1)
     {
         fprintf(stderr, "Failed to generate CODE\n");
-        return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                              "{\"error\": \"ошибка генерации кода\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.code-generate-failed", ctx->lang));
+
+        goto cleanup;
     }
     code = (code % 900000) + 100000;
 
     if (redis_verifycode_create(payload.email, code) != 0)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                              "{\"error\": \"ошибка сохранения кода\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.code-save-failed", ctx->lang));
+        goto cleanup;
     }
 
     /* Send email */
     /* ---------- */
-    const char* html =
-        "<body>"
-        "<p>Мы получили запрос на использование адреса электронной почты <b>%s</b></p>"
-        "<p>Введите код для подтверждения входа. Если вы не запрашивали письмо, просто "
-        "проигнорируйте его и не вводите код:</p>"
-        "<h2>%d</h2>"
-        "<p>Срок действия кода истечет через 24 часа...</p>"
-        "<p>P.S. Данное письмо сгенерировано и отправлено автоматически. Пожалуйста, не отвечайте "
-        "на него</p>"
-        "</body>";
+    const char* html = "<body>"
+                       "<p>%s <b>%s</b></p>"
+                       "<p>%s</p>"
+                       "<h2>%d</h2>"
+                       "<p>%s...</p>"
+                       "<p>%s</p>"
+                       "</body>";
 
     char buffer[2048];
-    snprintf(buffer, sizeof(buffer), html, code);
+    snprintf(buffer, sizeof(buffer), html, cHTTPX_i18n_t("email.request-notice", ctx->lang), payload.email,
+             cHTTPX_i18n_t("email.code-instruction", ctx->lang), code, cHTTPX_i18n_t("email.code-expire", ctx->lang),
+             cHTTPX_i18n_t("email.footer", ctx->lang));
 
-    send_email(payload.email, "Подтверждения адреса электронной почты ParmigianoChat", buffer);
+    if (send_email(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang), payload.email);
+        goto cleanup;
+    }
     /* ---------- */
     /* Send email */
 
-    return cHTTPX_ResJson(cHTTPX_StatusOK,
-                          "{\"message\": \"Код подтверждения отправлен на вашу почту.\"}");
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("code-sent", ctx->lang));
+
+cleanup:
+    /* Free payloads */
+    free(payload.email);
+    free(payload.password);
+
+    if (user)
+    {
+        free(user->email);
+        free(user->password);
+        free(user);
+    }
+
+    return;
+
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+
+    goto cleanup;
 }
 
-chttpx_response_t auth_create_handler(chttpx_request_t* req)
+void auth_create_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
-    auth_create_t payload;
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    auth_create_t payload = {0};
 
     chttpx_validation_t fields[] = {
-        chttpx_validation_str("name", true, 2, 24, &payload.name),
-        chttpx_validation_str("username", true, 4, 24, &payload.username),
-        chttpx_validation_str("email", true, 5, 254, &payload.email),
-        chttpx_validation_str("password", false, 8, 254, &payload.password),
+        chttpx_validation_string("name", &payload.name, true, 2, 24, VALIDATOR_NONE),
+        chttpx_validation_string("username", &payload.username, true, 4, 24, VALIDATOR_NONE),
+        chttpx_validation_string("email", &payload.email, true, 5, 254, VALIDATOR_EMAIL),
+        chttpx_validation_string("password", &payload.password, false, 8, 16, VALIDATOR_NONE),
     };
 
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+        goto errorjson;
 
-    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
 
     /* Verify code */
     /* ----------- */
@@ -146,8 +171,8 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
 
     if (redis_verifycode_get(payload.email, &codetmp))
     {
-        return cHTTPX_ResJson(cHTTPX_StatusCreated,
-                              "{\"message\": \"Код подтверждения уже отправлен на вашу почту.\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusCreated, "{\"message\": \"%s\"}", cHTTPX_i18n_t("code-already-sent", ctx->lang));
+        goto cleanup;
     }
     /* ----------- */
     /* Verify code */
@@ -157,26 +182,21 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
     trim_space(payload.email);
 
     /* Check symbols */
-    if (!is_valid(payload.name))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"недопустимые символы в имени\"}");
-    }
-
     if (!is_valid(payload.username))
     {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"недопустимые символы в имени пользователя\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.invalid-username", ctx->lang));
+        goto cleanup;
     }
 
     /* To lower email */
     to_lower(payload.email);
 
-    /* Validation email */
-    if (!is_valid_email(payload.email))
+    /* Check user is exists */
+    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
+    if (user)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"неверный или несуществующий email\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-already-registered", ctx->lang));
+        goto cleanup;
     }
 
     char* password_hash = NULL;
@@ -191,15 +211,15 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
 
         if (is_simple_password(payload.password))
         {
-            return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                                  "{\"error\": \"пароль слишком простой, введите новый\"}");
+            *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.weak-password", ctx->lang));
+            goto cleanup;
         }
 
         password_hash = hash_password(payload.password);
         if (!password_hash)
         {
-            return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                                  "{\"error\": \"ошибка хеширования пароля\"}");
+            *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.password-hash-failed", ctx->lang));
+            goto cleanup;
         }
     }
 
@@ -207,9 +227,9 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
     if (RAND_bytes((unsigned char*)&uid, sizeof(uid)) != 1)
     {
         fprintf(stderr, "Failed to generate UID\n");
-        return cHTTPX_ResJson(
-            cHTTPX_StatusInternalServerError,
-            "{\"error\": \"ошибка генерации уникального значения пользователя\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-uid-generate-failed", ctx->lang));
+
+        goto cleanup;
     }
     uid = (uid % 9000000000ULL) + 1000000000ULL;
 
@@ -257,8 +277,7 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
     }
     user_active->user_uid = uid;
 
-    db_result_t user_db_result = db_user_create(http_server->conn, user_core, user_profile,
-                                                user_profile_access, user_active);
+    db_result_t user_db_result = db_user_create(http_server->conn, user_core, user_profile, user_profile_access, user_active);
 
     /* free memory */
     free(user_core->email);
@@ -275,75 +294,97 @@ chttpx_response_t auth_create_handler(chttpx_request_t* req)
     switch (user_db_result)
     {
     case DB_TIMEOUT:
-        return cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut,
-                              "{\"error\": \"время ожидания подключения к базе данных истекло\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
 
     case DB_DUPLICATE:
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"повторяющие данные в запросе\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
 
     case DB_ERROR:
-        return cHTTPX_ResJson(cHTTPX_StatusConflict,
-                              "{\"error\": \"не удалось выполнить операцию с базой данных\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
     }
 
     uint64_t code;
     if (RAND_bytes((unsigned char*)&code, sizeof(code)) != 1)
     {
         fprintf(stderr, "Failed to generate CODE\n");
-        return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                              "{\"error\": \"ошибка генерации кода\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.code-generate-failed", ctx->lang));
+
+        goto cleanup;
     }
     code = (code % 900000) + 100000;
 
-    if (redis_verifycode_create(payload.email, code) != 0)
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                              "{\"error\": \"ошибка сохранения кода\"}");
-    }
-
     /* Send email */
     /* ---------- */
-    const char* html =
-        "<body>"
-        "<p>Мы получили запрос на использование адреса электронной почты <b>%s</b></p>"
-        "<p>Введите код для подтверждения входа. Если вы не запрашивали письмо, просто "
-        "проигнорируйте его и не вводите код:</p>"
-        "<h2>%d</h2>"
-        "<p>Срок действия кода истечет через 24 часа...</p>"
-        "<p>P.S. Данное письмо сгенерировано и отправлено автоматически. Пожалуйста, не отвечайте "
-        "на него</p>"
-        "</body>";
+    const char* html = "<body>"
+                       "<p>%s <b>%s</b></p>"
+                       "<p>%s</p>"
+                       "<h2>%d</h2>"
+                       "<p>%s...</p>"
+                       "<p>%s</p>"
+                       "</body>";
 
     char buffer[2048];
-    snprintf(buffer, sizeof(buffer), html, code);
+    snprintf(buffer, sizeof(buffer), html, cHTTPX_i18n_t("email.request-notice", ctx->lang), payload.email,
+             cHTTPX_i18n_t("email.code-instruction", ctx->lang), code, cHTTPX_i18n_t("email.code-expire", ctx->lang),
+             cHTTPX_i18n_t("email.footer", ctx->lang));
 
-    send_email(payload.email, "Подтверждения адреса электронной почты ParmigianoChat", buffer);
+    if (send_email(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang), payload.email);
+        goto cleanup;
+    }
     /* ---------- */
     /* Send email */
 
-    return cHTTPX_ResJson(cHTTPX_StatusOK,
-                          "{\"message\": \"Код подтверждения отправлен на вашу почту.\"}");
+    if (redis_verifycode_create(payload.email, code) != 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.code-save-failed", ctx->lang));
+        goto cleanup;
+    }
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("code-sent", ctx->lang));
+
+cleanup:
+    /* Free payloads */
+    free(payload.name);
+    free(payload.username);
+    free(payload.email);
+    free(payload.password);
+
+    if (user)
+    {
+        free(user->email);
+        free(user->password);
+        free(user);
+    }
+
+    return;
+
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+
+    goto cleanup;
 }
 
-chttpx_response_t auth_verify_handler(chttpx_request_t* req)
+void auth_verify_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
-    auth_verify_t payload;
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    auth_verify_t payload = {0};
 
     chttpx_validation_t fields[] = {
-        chttpx_validation_str("email", true, 5, 254, &payload.email),
-        chttpx_validation_int("code", true, &payload.code),
+        chttpx_validation_string("email", &payload.email, true, 5, 254, VALIDATOR_EMAIL),
+        chttpx_validation_integer("code", &payload.code, true),
     };
 
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+        goto errorjson;
 
-    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-    {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
-    }
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
 
     /* Verify code */
     /* ----------- */
@@ -351,40 +392,40 @@ chttpx_response_t auth_verify_handler(chttpx_request_t* req)
 
     if (!redis_verifycode_get(payload.email, &code))
     {
-        return cHTTPX_ResJson(cHTTPX_StatusConflict,
-                              "{\"error\": \"активных запросов для подтверждения не найдено\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.no-active-mail-confirmation", ctx->lang));
+        goto cleanup;
     }
     /* ----------- */
     /* Verify code */
 
     if (payload.code != code)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"неверный код подтверждения\"}");
-    }
-
-    db_result_t user_confirm_db_result =
-        db_user_core_upd_email_confirm(http_server->conn, true, payload.email);
-
-    switch (user_confirm_db_result)
-    {
-    case DB_TIMEOUT:
-        return cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut,
-                              "{\"error\": \"время ожидания подключения к базе данных истекло\"}");
-
-    case DB_DUPLICATE:
-        return cHTTPX_ResJson(cHTTPX_StatusBadRequest,
-                              "{\"error\": \"повторяющие данные в запросе\"}");
-
-    case DB_ERROR:
-        return cHTTPX_ResJson(cHTTPX_StatusConflict,
-                              "{\"error\": \"не удалось выполнить операцию с базой данных\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.invalid-confirmation-code", ctx->lang));
+        goto cleanup;
     }
 
     user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"пользователь не был найден\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
+    }
+
+    db_result_t user_confirm_db_result = db_user_core_upd_email_confirm(http_server->conn, true, payload.email);
+
+    switch (user_confirm_db_result)
+    {
+    case DB_TIMEOUT:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
+
+    case DB_DUPLICATE:
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
+
+    case DB_ERROR:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
     }
 
     session_t session = {.user_uid = user->user_uid, .expires_at = time(NULL) + REDIS_SESSION_TTL};
@@ -392,9 +433,27 @@ chttpx_response_t auth_verify_handler(chttpx_request_t* req)
     char* session_id = redis_session_create(&session);
     if (!session_id)
     {
-        return cHTTPX_ResJson(cHTTPX_StatusInternalServerError,
-                              "{\"error\": \"ошибка создании сессии\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.session-creation-error", ctx->lang));
+        goto cleanup;
     }
 
-    return cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
+
+cleanup:
+    /* Free payloads */
+    free(payload.email);
+
+    if (user)
+    {
+        free(user->email);
+        free(user->password);
+        free(user);
+    }
+
+    return;
+
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+
+    goto cleanup;
 }

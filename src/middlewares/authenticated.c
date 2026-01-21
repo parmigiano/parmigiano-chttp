@@ -1,6 +1,7 @@
 #include "httpx.h"
 #include "middlewarex.h"
 
+#include "handlers.h"
 #include "redis/redis_session.h"
 #include "postgres/postgres_users.h"
 
@@ -9,9 +10,15 @@
 
 chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx_response_t* res)
 {
-    if (strstr(req->path, "auth/login") != NULL || strstr(req->path, "auth/create") != NULL)
+    if (strstr(req->path, "auth/login") != NULL || strstr(req->path, "auth/create") != NULL || strstr(req->path, "auth/verify") != NULL)
     {
         return next;
+    }
+
+    auth_token_t* ctx = (auth_token_t*)req->context;
+    if (!ctx->lang)
+    {
+        ctx->lang = LANGUAGE_BASE;
     }
 
     const char* session_id = NULL;
@@ -24,28 +31,25 @@ chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx
 
     if (!session_id)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
-                              "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.connect-to-account", ctx->lang));
         return out;
     }
 
     session_t* session = redis_session_get(session_id);
     if (!session)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
-                              "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.connect-to-account", ctx->lang));
         return out;
     }
 
     user_info_t* user = db_user_info_get_by_uid(http_server->conn, session->user_uid);
     if (!user)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized,
-                              "{\"message\": \"пожалуйста, подключитесь к учетной записи\"}");
+        *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.connect-to-account", ctx->lang));
         return out;
     }
 
-    req->context = user;
+    ctx->user = user;
 
     redis_session_refresh(session_id);
     return next;

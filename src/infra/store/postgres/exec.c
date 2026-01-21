@@ -42,8 +42,7 @@ db_result_t execute_sql(PGconn* conn, const char* query, const char** params, in
     }
 }
 
-db_result_t execute_select(PGconn* conn, const char* query, const char** params, int n_params,
-                           db_result_set_t** out_result)
+db_result_t execute_select(PGconn* conn, const char* query, const char** params, int n_params, db_result_set_t** out_result)
 {
     if (!conn || !query || !out_result)
         return DB_ERROR;

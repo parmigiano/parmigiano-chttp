@@ -3,7 +3,8 @@
 
 #include <libchttpx/libchttpx.h>
 
-chttpx_response_t chat_i_handler(chttpx_request_t* req)
+void chat_i_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
     user_info_t* identity = (user_info_t*)req->context;
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.no-active-mail-confirmation", "ru"));
 }

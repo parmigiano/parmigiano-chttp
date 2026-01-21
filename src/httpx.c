@@ -58,6 +58,7 @@ void http_init(void)
     /* Initial middlewares */
     cHTTPX_MiddlewareRecovery();
     cHTTPX_MiddlewareRateLimiter(5, 1);
+    cHTTPX_MiddlewareUse(language_middleware);
     cHTTPX_MiddlewareUse(authenticate_middleware);
     cHTTPX_MiddlewareUse(email_confirmed_middleware);
 
@@ -77,5 +78,5 @@ static void _http_cors()
     };
 
     cHTTPX_Cors(allowed_origins, (sizeof(allowed_origins) / sizeof(allowed_origins[0])), NULL,
-                NULL);
+                "Content-Type, Authorization, X-Requested-With, Accept-Language");
 }

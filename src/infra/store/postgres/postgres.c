@@ -8,8 +8,8 @@
 PGconn* db_conn(void)
 {
     char connstr[256];
-    snprintf(connstr, sizeof(connstr), "host=%s dbname=%s user=%s password=%s", getenv("DB_HOST"),
-             getenv("DB_NAME"), getenv("DB_USER"), getenv("DB_PASSWORD"));
+    snprintf(connstr, sizeof(connstr), "host=%s dbname=%s user=%s password=%s", getenv("DB_HOST"), getenv("DB_NAME"), getenv("DB_USER"),
+             getenv("DB_PASSWORD"));
 
     PGconn* conn = PQconnectdb(connstr);
 

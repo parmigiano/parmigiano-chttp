@@ -20,10 +20,9 @@ int verify_password(const char *password, const char *hash);
 int env_init(const char* filename);
 
 /* validation.c */
-bool is_valid_email(const char *email);
 bool is_simple_password(const char *password);
 
 /* email.c */
-int send_email(const char* to, const char* subject, const char* body);
+int send_email(const char* to, const char* subject, const char* body, const char* cc);
 
 #endif

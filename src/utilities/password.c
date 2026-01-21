@@ -12,8 +12,7 @@ char* hash_password(const char* password)
 
     arc4random_buf(salt, sizeof(salt));
 
-    if (argon2id_hash_encoded(3, 65536, 1, password, strlen(password), salt, sizeof(salt), 32,
-                              encoded, ARGON2_HASH_LEN) != ARGON2_OK)
+    if (argon2id_hash_encoded(3, 65536, 1, password, strlen(password), salt, sizeof(salt), 32, encoded, ARGON2_HASH_LEN) != ARGON2_OK)
     {
         free(encoded);
         return NULL;
