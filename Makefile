@@ -1,12 +1,12 @@
 TARGET=server-http
 
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/include
+CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/include/postgresql -I/usr/local/include/libchttpx -I/usr/include/hiredis
 CLANG_FORMAT = clang-format
 
 OBJDIR = .out
 BINDIR = .build
-LIN_LDFLAGS = -pthread -lchttpx -lpq -lcrypto -lcurl -largon2 -lhiredis
+LIN_LDFLAGS = -pthread -lchttpx -lpq -lcrypto -lcurl -lssl -largon2 -lhiredis
 WIN_LDFLAGS = -lws2_32
 
 LIN_SRCS = $(filter-out ./lib/cjson/cJSON.c, $(shell find . -name '*.c'))
