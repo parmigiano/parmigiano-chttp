@@ -7,8 +7,8 @@ After=network.target
 ExecStartPre=/bin/sleep 2
 
 # запуск сервера
-ExecStart=/root/parmigiano-http/bin/server-http
-WorkingDirectory=/root/parmigiano-http
+ExecStart=/root/parmigiano-chttp/.build/server-http
+WorkingDirectory=/root/parmigiano-chttp
 
 ExecStop=/bin/bash -c 'sleep 1 && killall server-http || true'
 
