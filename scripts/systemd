@@ -11,6 +11,7 @@ NC='\033[0m'
 HOME="$(git rev-parse --show-toplevel)"
 
 cd "$HOME"
+make clean
 make
 
 sudo cp "$HOME/.systemd/server_http.service" /etc/systemd/system/
