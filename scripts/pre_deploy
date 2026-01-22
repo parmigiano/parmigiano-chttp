@@ -15,14 +15,13 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 HOME="$(git rev-parse --show-toplevel)"
-FILE_GO_HTTP="cmd/server/main.go"
+FILE_C="src/main.c"
 
 cd "$HOME"
-# Используем sed для замены 'Load()' на 'Load(".env.production")'
-echo -e "${BLUE}Замена Load() на Load(".env.production")${NC}"
-if sed -i.bak 's/godotenv.Load()/godotenv.Load(".env.production")/' "$HOME/$FILE_GO_HTTP"; then
-    echo -e "Значение переменной Load() заменено на Load(".env.production") в $FILE_GO_HTTP"
+echo -e "${BLUE}Замена env_init(\".env\") на env_init(\".env.production\")${NC}"
+if sed -i.bak 's/env_init("\.env")/env_init(".env.production")/' "$FILE_C"; then
+    echo -e "Значение переменной env_init() заменено на env_init(\".env.production\") в $FILE_C"
 else
-    echo -e "Ошибка: Не удалось заменить значение в файле $FILE_GO_HTTP."
+    echo -e "Ошибка: Не удалось заменить значение в файле $FILE_C."
     exit 1
 fi
