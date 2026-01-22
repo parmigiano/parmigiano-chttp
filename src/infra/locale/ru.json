@@ -26,5 +26,6 @@
     "error.user-uid-generate-failed": "ошибка генерации уникального значения пользователя",
     "error.sending-email": "ошибка отправки письма на почту",
     "error.user-already-registered": "пользователь уже зарегистрирован",
-    "error.password-required": "требуется ввод пароля"
+    "error.password-required": "требуется ввод пароля",
+    "user-deleted": "Учетная запись была удалена."
 }

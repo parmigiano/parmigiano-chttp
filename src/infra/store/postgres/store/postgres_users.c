@@ -243,3 +243,16 @@ db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* ema
     db_result_t result = execute_sql(conn, query, params, 2);
     return result;
 }
+
+db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid)
+{
+    const char* query = "DELETE FROM user_cores WHERE user_uid = $1";
+
+    char user_uid_str[64];
+    snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
+
+    const char* params[1] = {user_uid_str};
+
+    db_result_t result = execute_sql(conn, query, params, 1);
+    return result;
+}

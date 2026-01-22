@@ -33,6 +33,7 @@ typedef struct
 
 void auth_login_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
+    /* Context in request */
     auth_token_t* ctx = (auth_token_t*)req->context;
 
     auth_login_t payload = {0};
@@ -118,7 +119,8 @@ void auth_login_handler(chttpx_request_t* req, chttpx_response_t* res)
 
     if (send_email(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang), payload.email);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang),
+                              payload.email);
         goto cleanup;
     }
     /* ---------- */
@@ -136,6 +138,17 @@ cleanup:
         free(user->email);
         free(user->password);
         free(user);
+    }
+
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->lang)
+            free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
     }
 
     return;
@@ -333,7 +346,8 @@ void auth_create_handler(chttpx_request_t* req, chttpx_response_t* res)
 
     if (send_email(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang), payload.email);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang),
+                              payload.email);
         goto cleanup;
     }
     /* ---------- */
@@ -359,6 +373,17 @@ cleanup:
         free(user->email);
         free(user->password);
         free(user);
+    }
+
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->lang)
+            free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
     }
 
     return;
@@ -450,10 +475,61 @@ cleanup:
         free(user);
     }
 
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->lang)
+            free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
     return;
 
 errorjson:
     *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
 
     goto cleanup;
+}
+
+void auth_delete_handler(chttpx_request_t* req, chttpx_response_t* res)
+{
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    db_result_t user_del_db_result = db_user_del_by_uid(http_server->conn, ctx->user->user_uid);
+
+    switch (user_del_db_result)
+    {
+    case DB_TIMEOUT:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
+
+    case DB_DUPLICATE:
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
+
+    case DB_ERROR:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
+
+    // DELETE AVATAR S3
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("user-deleted", ctx->lang));
+
+cleanup:
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->lang)
+            free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
+    return;
 }

@@ -124,5 +124,7 @@ user_core_t* db_user_core_get_by_email(PGconn* conn, char *email);
 user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid);
 /* Update user email confirm by user_uid */
 db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* email);
+/* Delete user by user_uid */
+db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid);
 
 #endif

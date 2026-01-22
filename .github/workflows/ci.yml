@@ -1,0 +1,58 @@
+name: CI
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches: ['**']
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    http_server_build:
+        name: Build binary http server
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Install dependencies
+            run: |
+                sudo apt update
+
+                curl -s https://raw.githubusercontent.com/netcorelink/libchttpx/main/scripts/install.sh | sudo sh
+                
+                sudo apt install -y build-essential clang libpq-dev libssl-dev libcurl4-openssl-dev
+
+          - name: Build binary
+            run: |
+                make
+
+    deploy_prod:
+        name: Deploy production
+        runs-on: ubuntu-latest
+        needs: [http_server_build]
+        if: github.ref == 'refs/heads/main'
+        steps:
+            - uses: actions/checkout@v3
+            - name: SSH Deploy
+              uses: appleboy/ssh-action@v0.1.10
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  password: ${{ secrets.VPS_PASSWORD }}
+                  port: 22
+                  script: |
+                      set -e
+
+                      cd /root/parmigiano-chttp
+
+                      git stash
+                      git checkout main
+                      git pull origin main
+
+                      cd /root/parmigiano-chttp/scripts
+
+                      bash pre_deploy
+                      bash systemd

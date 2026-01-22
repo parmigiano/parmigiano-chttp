@@ -26,5 +26,6 @@
     "code-already-sent": "Confirmation code has already been sent to your email.",
     "error.sending-email": "error sending an email",
     "error.user-already-registered": "the user is already registered",
-    "error.password-required": "a password is required"
+    "error.password-required": "a password is required",
+    "user-deleted": "Account has been deleted."
 }
