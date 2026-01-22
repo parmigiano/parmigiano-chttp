@@ -1,7 +1,7 @@
 TARGET=server-http
 
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/include/postgresql -I/usr/local/include/libchttpx -I/usr/include/hiredis
+CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/include
 CLANG_FORMAT = clang-format
 
 OBJDIR = .out

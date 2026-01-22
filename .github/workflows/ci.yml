@@ -23,7 +23,7 @@ jobs:
 
                 curl -s https://raw.githubusercontent.com/netcorelink/libchttpx/main/scripts/install.sh | sudo sh
                 
-                sudo apt install -y build-essential clang libpq-dev libssl-dev libcurl4-openssl-dev libhiredis-dev
+                sudo apt install -y build-essential clang libpq-dev libssl-dev libcurl4-openssl-dev libhiredis-dev libargon2-1 libargon2-dev
 
           - name: Build binary
             run: |
