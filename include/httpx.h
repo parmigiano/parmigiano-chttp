@@ -3,7 +3,7 @@
 
 #include <libpq-fe.h>
 
-#define HTTPX_SERVER_PORT 80
+#define HTTPX_SERVER_PORT 8080
 
 typedef struct {
     PGconn* conn;
