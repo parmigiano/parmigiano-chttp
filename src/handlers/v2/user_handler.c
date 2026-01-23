@@ -3,7 +3,7 @@
 #include "s3.h"
 #include "httpx.h"
 
-void user_me_handler(chttpx_request_t* req, chttpx_response_t* res)
+void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
@@ -42,7 +42,8 @@ cleanup:
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
 
-        if (ctx->lang) free(ctx->lang);
+        if (ctx->lang)
+            free(ctx->lang);
         free(ctx);
 
         req->context = NULL;
@@ -51,7 +52,7 @@ cleanup:
     return;
 }
 
-void user_upload_avatar_handler(chttpx_request_t *req, chttpx_response_t *res)
+void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
@@ -69,11 +70,11 @@ void user_upload_avatar_handler(chttpx_request_t *req, chttpx_response_t *res)
     }
 
     s3_config_t s3_config = {
-      .endpoint = getenv("S3_ENDPOINT"),
-      .bucket = getenv("S3_BUCKET"),
-      .access_key = getenv("S3_ACCESS_KEY"),
-      .secret_key = getenv("S3_SECRET_KEY"),
-      .region = getenv("S3_REGION"),
+        .endpoint = getenv("S3_ENDPOINT"),
+        .bucket = getenv("S3_BUCKET"),
+        .access_key = getenv("S3_ACCESS_KEY"),
+        .secret_key = getenv("S3_SECRET_KEY"),
+        .region = getenv("S3_REGION"),
     };
 
     /* save to s3 storage */
@@ -111,15 +112,18 @@ cleanup:
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
 
-        if (ctx->lang) free(ctx->lang);
+        if (ctx->lang)
+            free(ctx->lang);
         free(ctx);
 
         req->context = NULL;
     }
 
-    if (url) free(url);
+    if (url)
+        free(url);
 
-    if (req->filename[0] != '\0') remove(req->filename);
+    if (req->filename[0] != '\0')
+        remove(req->filename);
 
     return;
 }

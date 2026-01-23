@@ -10,13 +10,18 @@ typedef struct {
     char* lang;
 } auth_token_t;
 
+/* Docs handlers */
+void swagger_json_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+void swagger_gui_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+
 /* Auth handlers */
-void auth_login_handler(chttpx_request_t *req, chttpx_response_t *res);
-void auth_create_handler(chttpx_request_t *req, chttpx_response_t *res);
-void auth_verify_handler(chttpx_request_t* req, chttpx_response_t *res);
+void auth_login_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
+void auth_create_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
+void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t *res);
+void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 
 /* User handlers */
-void user_me_handler(chttpx_request_t* req, chttpx_response_t* res);
-void user_upload_avatar_handler(chttpx_request_t *req, chttpx_response_t *res);
+void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+void user_upload_avatar_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
 
 #endif

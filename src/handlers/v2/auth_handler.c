@@ -31,7 +31,7 @@ typedef struct
     int code;
 } auth_verify_t;
 
-void auth_login_handler(chttpx_request_t* req, chttpx_response_t* res)
+void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     /* Context in request */
     auth_token_t* ctx = (auth_token_t*)req->context;
@@ -159,7 +159,7 @@ errorjson:
     goto cleanup;
 }
 
-void auth_create_handler(chttpx_request_t* req, chttpx_response_t* res)
+void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
@@ -394,7 +394,7 @@ errorjson:
     goto cleanup;
 }
 
-void auth_verify_handler(chttpx_request_t* req, chttpx_response_t* res)
+void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
@@ -494,7 +494,7 @@ errorjson:
     goto cleanup;
 }
 
-void auth_delete_handler(chttpx_request_t* req, chttpx_response_t* res)
+void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
