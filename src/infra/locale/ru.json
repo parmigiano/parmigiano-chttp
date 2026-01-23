@@ -27,5 +27,8 @@
     "error.sending-email": "ошибка отправки письма на почту",
     "error.user-already-registered": "пользователь уже зарегистрирован",
     "error.password-required": "требуется ввод пароля",
-    "user-deleted": "Учетная запись была удалена."
+    "user-deleted": "Учетная запись была удалена.",
+    "error.no-data-to-process": "нет данных для обработки",
+    "error.open-temporary-file": "не удалось открыть временный файл",
+    "error.save-file": "не удалось сохранить файл"
 }

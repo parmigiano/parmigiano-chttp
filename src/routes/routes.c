@@ -4,8 +4,13 @@
 
 void routes(void)
 {
-    cHTTPX_Route("POST", "/api/v2/auth/login", auth_login_handler);
-    cHTTPX_Route("POST", "/api/v2/auth/create", auth_create_handler);
-    cHTTPX_Route("POST", "/api/v2/auth/verify", auth_verify_handler);
-    cHTTPX_Route("GET", "/api/v2/users/me", user_me_handler);
+    chttpx_router_t v2 = cHTTPX_RoutePathPrefix("/api/v2");
+
+    /* Auth routes */
+    cHTTPX_RegisterRoute(&v2, "POST", "/auth/login", auth_login_handler);
+    cHTTPX_RegisterRoute(&v2, "POST", "/auth/create", auth_create_handler);
+    cHTTPX_RegisterRoute(&v2, "POST", "/auth/verify", auth_verify_handler);
+    /* User routes */
+    cHTTPX_RegisterRoute(&v2, "GET", "/users/me", user_me_handler);
+    cHTTPX_RegisterRoute(&v2, "PATCH", "/users/me/avatar", user_upload_avatar_handler);
 }

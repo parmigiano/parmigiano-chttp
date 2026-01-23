@@ -23,7 +23,9 @@ void http_init(void)
     /* cHTTPX Server */
     chttpx_serv_t serv = {0};
 
-    if (cHTTPX_Init(&serv, HTTPX_SERVER_PORT) != 0)
+    size_t max_clients = 65536;
+
+    if (cHTTPX_Init(&serv, HTTPX_SERVER_PORT, &max_clients) != 0)
     {
         printf("Failed to start server\n");
         return;
@@ -65,7 +67,11 @@ void http_init(void)
     /* Initial routes */
     routes();
 
+    /* At the very end, to start listening to incoming requests from users. */
     cHTTPX_Listen();
+
+    /* Shutdown server */
+    cHTTPX_Shutdown();
 
     free(http_server);
 }

@@ -244,6 +244,20 @@ db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* ema
     return result;
 }
 
+db_result_t db_user_profile_upd_avatar_by_uid(PGconn* conn, uint64_t user_uid, char* avatar)
+{
+    const char* query = "UPDATE user_profiles SET avatar = $1 WHERE user_uid = $2";
+
+    /* convert -> str */
+    char user_uid_str[64];
+    snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
+
+    const char* params[2] = {avatar, user_uid_str};
+
+    db_result_t result = execute_sql(conn, query, params, 2);
+    return result;
+}
+
 db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid)
 {
     const char* query = "DELETE FROM user_cores WHERE user_uid = $1";

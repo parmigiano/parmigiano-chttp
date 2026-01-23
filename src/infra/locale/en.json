@@ -27,5 +27,8 @@
     "error.sending-email": "error sending an email",
     "error.user-already-registered": "the user is already registered",
     "error.password-required": "a password is required",
-    "user-deleted": "Account has been deleted."
+    "user-deleted": "Account has been deleted.",
+    "error.no-data-to-process": "there is no data to process",
+    "error.open-temporary-file": "couldn't open temporary file",
+    "error.save-file": "couldn't save the file"
 }

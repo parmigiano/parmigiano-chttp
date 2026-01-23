@@ -1,5 +1,8 @@
 #include "handlers.h"
 
+#include "s3.h"
+#include "httpx.h"
+
 void user_me_handler(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
@@ -44,6 +47,79 @@ cleanup:
 
         req->context = NULL;
     }
+
+    return;
+}
+
+void user_upload_avatar_handler(chttpx_request_t *req, chttpx_response_t *res)
+{
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    if (req->filename[0] == '\0')
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.no-data-to-process", ctx->lang));
+        goto cleanup;
+    }
+
+    FILE* f = fopen(req->filename, "rb");
+    if (!f)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.open-temporary-file", ctx->lang));
+        goto cleanup;
+    }
+
+    s3_config_t s3_config = {
+      .endpoint = getenv("S3_ENDPOINT"),
+      .bucket = getenv("S3_BUCKET"),
+      .access_key = getenv("S3_ACCESS_KEY"),
+      .secret_key = getenv("S3_SECRET_KEY"),
+      .region = getenv("S3_REGION"),
+    };
+
+    /* save to s3 storage */
+    char* url = s3_upload_file(f, req->filename, &s3_config);
+    fclose(f);
+
+    if (!url)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.save-file", ctx->lang));
+        goto cleanup;
+    }
+
+    /* update in database */
+    db_result_t user_upd_result = db_user_profile_upd_avatar_by_uid(http_server->conn, ctx->user->user_uid, url);
+
+    switch (user_upd_result)
+    {
+    case DB_TIMEOUT:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
+
+    case DB_DUPLICATE:
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
+
+    case DB_ERROR:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", url);
+
+cleanup:
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->lang) free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
+    if (url) free(url);
+
+    if (req->filename[0] != '\0') remove(req->filename);
 
     return;
 }
