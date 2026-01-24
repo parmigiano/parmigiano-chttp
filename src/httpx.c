@@ -9,8 +9,6 @@
 
 httpx_server_t* http_server = NULL;
 
-static void _http_cors();
-
 void http_init(void)
 {
     http_server = (httpx_server_t*)calloc(1, sizeof(httpx_server_t));
@@ -54,9 +52,6 @@ void http_init(void)
 
     run_migrations(conn);
 
-    /* Inital cors */
-    _http_cors();
-
     /* Initial middlewares */
     cHTTPX_MiddlewareRecovery();
     cHTTPX_MiddlewareRateLimiter(5, 1);
@@ -74,12 +69,4 @@ void http_init(void)
     cHTTPX_Shutdown();
 
     free(http_server);
-}
-
-static void _http_cors()
-{
-    const char* allowed_origins[] = { "*" };
-
-    cHTTPX_Cors(allowed_origins, (sizeof(allowed_origins) / sizeof(allowed_origins[0])), NULL,
-                "Content-Type, Authorization, X-Requested-With, Accept-Language");
 }
