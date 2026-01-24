@@ -54,6 +54,7 @@ void http_init(void)
 
     /* Initial middlewares */
     cHTTPX_MiddlewareRecovery();
+    cHTTPX_MiddlewareLogging();
     cHTTPX_MiddlewareRateLimiter(5, 1);
     cHTTPX_MiddlewareUse(language_middleware);
     cHTTPX_MiddlewareUse(authenticate_middleware);

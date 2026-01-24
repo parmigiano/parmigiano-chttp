@@ -13,6 +13,8 @@
 *.build
 
 *.vscode/
+logs/
+log/
 
 # Linker output
 *.ilk
