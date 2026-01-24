@@ -78,10 +78,7 @@ void http_init(void)
 
 static void _http_cors()
 {
-    const char* allowed_origins[] = {
-        "https://parmigianochat.ru",
-        "http://localhost:80",
-    };
+    const char* allowed_origins[] = { "*" };
 
     cHTTPX_Cors(allowed_origins, (sizeof(allowed_origins) / sizeof(allowed_origins[0])), NULL,
                 "Content-Type, Authorization, X-Requested-With, Accept-Language");
