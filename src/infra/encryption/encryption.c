@@ -49,7 +49,7 @@ char* encrypt(const char* plaintext)
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 
     unsigned char ciphertext[1024];
-    int len, clen;
+    int len = 0, clen = 0;
 
     EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
     EVP_EncryptUpdate(ctx, ciphertext, &len, (unsigned char*)plaintext, strlen(plaintext));
@@ -103,7 +103,7 @@ char* decrypt(const char* cipher_b64)
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     unsigned char plaintext[1024];
-    int len, plen;
+    int len = 0, plen = 0;
 
     EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
     EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, clen);

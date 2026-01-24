@@ -44,6 +44,10 @@ chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx
     }
 
     user_info_t* user = db_user_info_get_by_uid(http_server->conn, session->user_uid);
+
+    free(session);
+    session = NULL;
+
     if (!user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusUnauthorized, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.connect-to-account", ctx->lang));

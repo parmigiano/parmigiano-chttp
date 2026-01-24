@@ -12,7 +12,8 @@
   "paths": {
     "/auth/login": {
       "post": {
-        "summary": "Login user and send verification code",
+        "summary": "Login user and register user OR send verification code",
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
@@ -55,7 +56,7 @@
             }
           },
           "404": {
-            "description": "User not found or invalid password",
+            "description": "User not found - need register",
             "content": {
               "application/json": {
                 "schema": {
@@ -76,9 +77,291 @@
           }
         }
       }
+    },
+    "/auth/create": {
+      "post": {
+        "summary": "Register user and send verification code",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification code sended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "summary": "Verification code before send request",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthVerify"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "send session id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/delete": {
+      "delete": {
+        "summary": "Delete user account",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User has been deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Get user me profile",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get me profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me/avatar": {
+      "patch": {
+        "summary": "Uploading a user's avatar",
+        "description": "Updates the current user's avatar via a file",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The image file for the avatar"
+                  }
+                },
+                "required": ["avatar"]
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Avatar uploaded successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "https://s3.example.com/avatar/123.png"
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Request error or duplicate",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string",
+                    "example": "There is no data to process"
+                  }
+                },
+                "required": ["error"]
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string",
+                    "example": "Couldn't save the file"
+                  }
+                },
+                "required": ["error"]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
       "AuthLogin": {
         "type": "object",
@@ -129,6 +412,31 @@
             "type": "integer",
             "example": 123456
           }
+        }
+      },
+      "UserInfo": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "created_at": { "type": "integer", "format": "int64" },
+          "user_uid": { "type": "integer", "format": "int64" },
+          "avatar": { "type": "string", "nullable": true },
+          "name": { "type": "string", "nullable": true },
+          "username": { "type": "string", "nullable": true },
+          "username_visible": { "type": "boolean" },
+          "email": { "type": "string", "format": "email", "nullable": true },
+          "email_visible": { "type": "boolean" },
+          "email_confirm": { "type": "boolean" },
+          "phone": { "type": "string", "nullable": true },
+          "phone_visible": { "type": "boolean" },
+          "overview": { "type": "string", "nullable": true }
+        },
+        "required": ["id", "created_at", "user_uid"]
+      },
+      "UserInfoResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "$ref": "#/components/schemas/UserInfo" }
         }
       },
       "MessageResponse": {

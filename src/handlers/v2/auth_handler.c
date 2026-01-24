@@ -375,6 +375,8 @@ cleanup:
         free(user);
     }
 
+    if (password_hash) free(password_hash);
+
     if (req->context)
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
@@ -462,6 +464,8 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
+    free(session_id);
+
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
 
 cleanup:
@@ -516,6 +520,7 @@ void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     }
 
     // DELETE AVATAR S3
+    // DELETE FROM SESSION REDIS
 
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("user-deleted", ctx->lang));
 
@@ -523,6 +528,12 @@ cleanup:
     if (req->context)
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
 
         if (ctx->lang)
             free(ctx->lang);

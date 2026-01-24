@@ -118,6 +118,8 @@ db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t*
                                 user_profile_access_t* user_profile_access, user_active_t* user_active);
 /* Get user info by user_uid */
 user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid);
+/* HELPER. Free user info */
+void db_user_info_free(user_info_t* user);
 /* Get user_core by email */
 user_core_t* db_user_core_get_by_email(PGconn* conn, char *email);
 /* Get user_core by user_uid */

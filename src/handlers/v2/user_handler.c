@@ -31,7 +31,7 @@ void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
                           "\"overview\": \"%s\""
                           "}"
                           "}",
-                          ctx->user->id, ctx->user->created_at, ctx->user->avatar ? ctx->user->avatar : "", ctx->user->name ? ctx->user->name : "",
+                          ctx->user->id, ctx->user->created_at, ctx->user->user_uid, ctx->user->avatar ? ctx->user->avatar : "", ctx->user->name ? ctx->user->name : "",
                           ctx->user->username ? ctx->user->username : "", ctx->user->username_visible ? "true" : "false",
                           ctx->user->email ? ctx->user->email : "", ctx->user->email_visible ? "true" : "false",
                           ctx->user->email_confirm ? "true" : "false", ctx->user->phone ? ctx->user->phone : "",
@@ -41,6 +41,12 @@ cleanup:
     if (req->context)
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
 
         if (ctx->lang)
             free(ctx->lang);

@@ -169,6 +169,20 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
     return user;
 }
 
+void db_user_info_free(user_info_t* user)
+{
+    if (!user) return;
+
+    free(user->avatar);
+    free(user->name);
+    free(user->username);
+    free(user->email);
+    free(user->phone);
+    free(user->overview);
+
+    free(user);
+}
+
 user_core_t* db_user_core_get_by_email(PGconn* conn, char* email)
 {
     db_result_set_t* rc = NULL;
