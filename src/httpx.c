@@ -9,6 +9,8 @@
 
 httpx_server_t* http_server = NULL;
 
+static void _cors();
+
 void http_init(void)
 {
     http_server = (httpx_server_t*)calloc(1, sizeof(httpx_server_t));
@@ -52,6 +54,9 @@ void http_init(void)
 
     run_migrations(conn);
 
+    /* Cors */
+    _cors();
+
     /* Initial middlewares */
     cHTTPX_MiddlewareRecovery();
     cHTTPX_MiddlewareLogging();
@@ -70,4 +75,15 @@ void http_init(void)
     cHTTPX_Shutdown();
 
     free(http_server);
+}
+
+static void _cors()
+{
+    const char* allowed[3] = {
+        "https://parmigianochat.ru",
+        "http://localhost:5173",
+        "http://localhost:80"
+    };
+
+    cHTTPX_Cors(allowed, 3, NULL, "Content-Type, Authorization, Accept-Language");
 }
