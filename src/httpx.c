@@ -79,11 +79,30 @@ void http_init(void)
 
 static void _cors()
 {
-    const char* allowed[3] = {
+    const char* env_type = getenv("TYPE");
+    if (!env_type) return;
+
+    const char* allowed_origins_prod[1] = {
         "https://parmigianochat.ru",
-        "http://localhost:5173",
-        "http://localhost:80"
     };
 
-    cHTTPX_Cors(allowed, 3, NULL, "Content-Type, Authorization, Accept-Language");
+    const char* allowed_origins_dev[2] = {
+        "http://localhost:8080",
+        "http://localhost:80",
+    };
+
+    const char** allowed_origins;
+    size_t origins_count;
+
+    if (strcmp(env_type, "PROD") == 0)
+    {
+        allowed_origins = allowed_origins_prod;
+        origins_count = sizeof(allowed_origins_prod) / sizeof(allowed_origins_prod[0]);
+    }
+    else {
+        allowed_origins = allowed_origins_dev;
+        origins_count = sizeof(allowed_origins_dev) / sizeof(allowed_origins_dev[0]);
+    }
+
+    cHTTPX_Cors(allowed_origins, origins_count, NULL, "Content-Type, Authorization, Accept-Language");
 }

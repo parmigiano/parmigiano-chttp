@@ -17,4 +17,5 @@ void routes(void)
     /* User routes */
     cHTTPX_RegisterRoute(&v2, "GET", "/users/me", user_me_handler_v2);
     cHTTPX_RegisterRoute(&v2, "PATCH", "/users/me/avatar", user_upload_avatar_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "GET", "/users/{user_uid}", user_get_profile_handler_v2);
 }

@@ -5,7 +5,7 @@
 #include <hiredis/hiredis.h>
 
 #define REDIS_SESSION_TTL 172800
-#define REDIS_VERIFYCODE_TTL 86400
+#define REDIS_VERIFYCODE_TTL 1800
 
 extern redisContext *redis;
 

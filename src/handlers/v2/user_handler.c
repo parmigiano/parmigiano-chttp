@@ -118,6 +118,12 @@ cleanup:
     {
         auth_token_t* ctx = (auth_token_t*)req->context;
 
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
+
         if (ctx->lang)
             free(ctx->lang);
         free(ctx);
@@ -130,6 +136,82 @@ cleanup:
 
     if (req->filename[0] != '\0')
         remove(req->filename);
+
+    return;
+}
+
+void user_get_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *res)
+{
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    /* Get from params -> user_uid */
+    const char* user_uid_param = cHTTPX_Param(req, "user_uid");
+    if (!user_uid_param)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
+    }
+
+    int user_uid = atoi(user_uid_param);
+    if (user_uid < 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
+    }
+
+    user_info_t* user = db_user_info_get_by_uid(http_server->conn, (uint64_t)user_uid);
+    if (!user)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        goto cleanup;
+    }
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK,
+                          "{"
+                          "\"message\": {"
+                          "\"id\": %lu,"
+                          "\"created_at\": %ld,"
+                          "\"user_uid\": %lu,"
+                          "\"avatar\": \"%s\","
+                          "\"name\": \"%s\","
+                          "\"username\": \"%s\","
+                          "\"username_visible\": %s,"
+                          "\"email\": \"%s\","
+                          "\"email_visible\": %s,"
+                          "\"email_confirm\": %s,"
+                          "\"phone\": \"%s\","
+                          "\"phone_visible\": %s,"
+                          "\"overview\": \"%s\""
+                          "}"
+                          "}",
+                          user->id, user->created_at, user->user_uid, user->avatar ? user->avatar : "", user->name ? user->name : "",
+                          user->username ? user->username : "", user->username_visible ? "true" : "false",
+                          user->email ? user->email : "", user->email_visible ? "true" : "false",
+                          user->email_confirm ? "true" : "false", user->phone ? user->phone : "",
+                          user->phone_visible ? "true" : "false", user->overview ? user->overview : "");
+
+cleanup:
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
+
+        if (ctx->lang) free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
+    if (user)
+    {
+        db_user_info_free(user);
+        user = NULL;
+    }
 
     return;
 }
