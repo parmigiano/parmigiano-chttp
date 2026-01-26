@@ -6,13 +6,12 @@ db_result_t db_user_core_create(PGconn* conn, user_core_t* user)
     const char* query = "INSERT INTO user_cores (user_uid, email, password) VALUES ($1, $2, $3)";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[3] = {user_uid_str, user->email, user->password};
 
-    db_result_t result = execute_sql(conn, query, params, 3);
-    return result;
+    return execute_sql(conn, query, params, 3);
 }
 
 db_result_t db_user_profile_create(PGconn* conn, user_profile_t* user)
@@ -20,13 +19,12 @@ db_result_t db_user_profile_create(PGconn* conn, user_profile_t* user)
     const char* query = "INSERT INTO user_profiles (user_uid, avatar, name, username) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[4] = {user_uid_str, user->avatar, user->name, user->username};
 
-    db_result_t result = execute_sql(conn, query, params, 4);
-    return result;
+    return execute_sql(conn, query, params, 4);
 }
 
 db_result_t db_user_profile_access_create(PGconn* conn, user_profile_access_t* user)
@@ -35,14 +33,13 @@ db_result_t db_user_profile_access_create(PGconn* conn, user_profile_access_t* u
                         "username_visible, phone_visible) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[4] = {user_uid_str, user->email_visible ? "true" : "false", user->username_visible ? "true" : "false",
                              user->phone_visible ? "true" : "false"};
 
-    db_result_t result = execute_sql(conn, query, params, 4);
-    return result;
+    return execute_sql(conn, query, params, 4);
 }
 
 db_result_t db_user_profile_active_create(PGconn* conn, user_active_t* user)
@@ -50,13 +47,12 @@ db_result_t db_user_profile_active_create(PGconn* conn, user_active_t* user)
     const char* query = "INSERT INTO user_actives (user_uid) VALUES ($1)";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[1] = {user_uid_str};
 
-    db_result_t result = execute_sql(conn, query, params, 1);
-    return result;
+    return execute_sql(conn, query, params, 1);
 }
 
 db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t* user_profile, user_profile_access_t* user_profile_access,
@@ -65,16 +61,9 @@ db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t*
     if (!conn)
         return DB_ERROR;
 
-    PGresult* result = PQexec(conn, "BEGIN");
-    if (!result || PQresultStatus(result) != PGRES_COMMAND_OK)
-    {
-        if (result)
-            PQclear(result);
-        return DB_ERROR;
-    }
-    PQclear(result);
+    execute_sql(conn, "BEGIN", NULL, 0);
 
-    int rc;
+    db_result_t rc;
 
     rc = db_user_core_create(conn, user_core);
     if (rc != DB_OK)
@@ -92,21 +81,13 @@ db_result_t db_user_create(PGconn* conn, user_core_t* user_core, user_profile_t*
     if (rc != DB_OK)
         goto rollback;
 
-    result = PQexec(conn, "COMMIT");
-    if (!result || PQresultStatus(result) != PGRES_COMMAND_OK)
-    {
-        if (result)
-            PQclear(result);
-        goto rollback;
-    }
+    execute_sql(conn, "COMMIT", NULL, 0);
 
-    PQclear(result);
     return DB_OK;
 
 rollback:
-    result = PQexec(conn, "ROLLBACK");
-    if (result)
-        PQclear(result);
+    execute_sql(conn, "ROLLBACK", NULL, 0);
+
     return DB_ERROR;
 }
 
@@ -134,7 +115,7 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
                         "LIMIT 1";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};
@@ -171,7 +152,8 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
 
 void db_user_info_free(user_info_t* user)
 {
-    if (!user) return;
+    if (!user)
+        return;
 
     free(user->avatar);
     free(user->name);
@@ -222,7 +204,7 @@ user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid)
                         "WHERE user_uid = $1 LIMIT 1";
 
     /* convert -> char */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};
@@ -254,8 +236,7 @@ db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* ema
     const char* query = "UPDATE user_cores SET email_confirm = $1 WHERE email = $2";
     const char* params[2] = {confirm ? "true" : "false", email};
 
-    db_result_t result = execute_sql(conn, query, params, 2);
-    return result;
+    return execute_sql(conn, query, params, 2);
 }
 
 db_result_t db_user_profile_upd_avatar_by_uid(PGconn* conn, uint64_t user_uid, char* avatar)
@@ -263,24 +244,185 @@ db_result_t db_user_profile_upd_avatar_by_uid(PGconn* conn, uint64_t user_uid, c
     const char* query = "UPDATE user_profiles SET avatar = $1 WHERE user_uid = $2";
 
     /* convert -> str */
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[2] = {avatar, user_uid_str};
 
-    db_result_t result = execute_sql(conn, query, params, 2);
-    return result;
+    return execute_sql(conn, query, params, 2);
+}
+
+db_result_t db_user_profile_access_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user)
+{
+    char query[512];
+    const char* params[5];
+    size_t param_count = 0;
+
+    int i = 1;
+    int first = 1;
+
+    strcpy(query, "UPDATE user_profile_accesses SET ");
+
+    if (user->username_visible)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%susername_visible=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->username_visible ? "true" : "false";
+        first = 0;
+    }
+
+    if (user->email_visible)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%semail_visible=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->email_visible ? "true" : "false";
+        first = 0;
+    }
+
+    if (user->phone_visible)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%sphone_visible=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->phone_visible ? "true" : "false";
+        first = 0;
+    }
+
+    if (param_count == 0)
+        return DB_OK;
+
+    static char user_uid_str[64];
+    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+
+    snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
+    params[param_count++] = user_uid_str;
+
+    return execute_sql(conn, query, params, param_count);
+}
+
+db_result_t db_user_profile_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user)
+{
+    char query[512];
+    const char* params[6];
+    size_t param_count = 0;
+
+    int i = 1;
+    int first = 1;
+
+    strcpy(query, "UPDATE user_profiles SET ");
+
+    if (user->username)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%susername=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->username;
+        first = 0;
+    }
+
+    if (user->name)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%sname=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->name;
+        first = 0;
+    }
+
+    if (user->overview)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%soverview=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->overview;
+        first = 0;
+    }
+
+    if (user->phone)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%sphone=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->phone;
+        first = 0;
+    }
+
+    if (param_count == 0)
+        return DB_OK;
+
+    static char user_uid_str[64];
+    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+
+    snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
+    params[param_count++] = user_uid_str;
+
+    return execute_sql(conn, query, params, param_count);
+}
+
+db_result_t db_user_core_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user)
+{
+    char query[512];
+    const char* params[4];
+    size_t param_count = 0;
+
+    int i = 1;
+    int first = 1;
+
+    strcpy(query, "UPDATE user_cores SET ");
+
+    if (user->email)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%semail=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->email;
+        first = 0;
+    }
+
+    if (user->password)
+    {
+        snprintf(query + strlen(query), sizeof(query) - strlen(query), "%spassword=$%d", first ? "" : ", ", i++);
+        params[param_count++] = user->password;
+        first = 0;
+    }
+
+    if (param_count == 0)
+        return DB_OK;
+
+    static char user_uid_str[64];
+    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+
+    snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
+    params[param_count++] = user_uid_str;
+
+    return execute_sql(conn, query, params, param_count);
+}
+
+db_result_t db_user_UPDATE_upd(PGconn* conn, uint64_t user_uid, user_profile_update_t* user)
+{
+    if (!conn)
+        return DB_ERROR;
+
+    execute_sql(conn, "BEGIN", NULL, 0);
+
+    db_result_t rc;
+
+    rc = db_user_core_upd_by_uid(conn, user_uid, user);
+    if (rc != DB_OK)
+        goto rollback;
+
+    rc = db_user_profile_upd_by_uid(conn, user_uid, user);
+    if (rc != DB_OK)
+        goto rollback;
+
+    rc = db_user_profile_access_upd_by_uid(conn, user_uid, user);
+    if (rc != DB_OK)
+        goto rollback;
+
+    execute_sql(conn, "COMMIT", NULL, 0);
+
+    return DB_OK;
+
+rollback:
+    execute_sql(conn, "ROLLBACK", NULL, 0);
+
+    return DB_ERROR;
 }
 
 db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid)
 {
     const char* query = "DELETE FROM user_cores WHERE user_uid = $1";
 
-    char user_uid_str[64];
+    static char user_uid_str[64];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};
 
-    db_result_t result = execute_sql(conn, query, params, 1);
-    return result;
+    return execute_sql(conn, query, params, 1);
 }

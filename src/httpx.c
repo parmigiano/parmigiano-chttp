@@ -80,7 +80,8 @@ void http_init(void)
 static void _cors()
 {
     const char* env_type = getenv("TYPE");
-    if (!env_type) return;
+    if (!env_type)
+        return;
 
     const char* allowed_origins_prod[1] = {
         "https://parmigianochat.ru",
@@ -99,7 +100,8 @@ static void _cors()
         allowed_origins = allowed_origins_prod;
         origins_count = sizeof(allowed_origins_prod) / sizeof(allowed_origins_prod[0]);
     }
-    else {
+    else
+    {
         allowed_origins = allowed_origins_dev;
         origins_count = sizeof(allowed_origins_dev) / sizeof(allowed_origins_dev[0]);
     }

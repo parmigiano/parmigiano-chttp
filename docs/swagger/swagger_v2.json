@@ -268,6 +268,67 @@
             }
           }
         }
+      },
+      "patch": {
+        "summary": "Update user information",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The profile has been updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/users/me/avatar": {
@@ -352,6 +413,73 @@
           }
         }
       }
+    },
+    "/users/{user_uid}": {
+      "get": {
+        "summary": "Get profile user by user_uid",
+        "description": "Returns user profile",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_uid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "description": "UID пользователя"
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "User has been successfully get",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInfoResponse"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "User not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authorization",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -411,6 +539,58 @@
           "code": {
             "type": "integer",
             "example": 123456
+          }
+        }
+      },
+      "UserUpdateProfile": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 24,
+            "example": "john_doe"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 24,
+            "example": "John"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 254,
+            "example": "+123456789012"
+          },
+          "overview": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 125,
+            "example": "Short description"
+          },
+          "username_visible": {
+            "type": "boolean",
+            "example": true
+          },
+          "phone_visible": {
+            "type": "boolean",
+            "example": false
+          },
+          "email_visible": {
+            "type": "boolean",
+            "example": true
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 255,
+            "example": "strongpassword123"
           }
         }
       },

@@ -52,17 +52,16 @@ typedef struct {
 } user_active_t;
 
 typedef struct {
-    uint64_t user_uid;
-    char *username;  
-    char *name;     
-    char *email; 
-    char *phone;  
+    char *username;
+    char *name;
+    char *email;
+    char *phone;
     char *overview;
     bool *username_visible;
     bool *phone_visible;
     bool *email_visible;
     char *password;
-} user_profile_upd_t;
+} user_profile_update_t;
 
 typedef struct {
     uint64_t id;
@@ -75,9 +74,9 @@ typedef struct {
     char *email;
     bool email_visible;
     bool email_confirm;
-    char *phone;      
+    char *phone;
     bool phone_visible;
-    char *overview;   
+    char *overview;
 } user_info_t;
 
 typedef struct {
@@ -128,6 +127,14 @@ user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid);
 db_result_t db_user_core_upd_email_confirm(PGconn* conn, bool confirm, char* email);
 /* Update user profile avatar by user_uid*/
 db_result_t db_user_profile_upd_avatar_by_uid(PGconn* conn, uint64_t user_uid, char* avatar);
+/* Update user profile access by user_uid */
+db_result_t db_user_profile_access_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user);
+/* Update user profile by user_uid */
+db_result_t db_user_profile_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user);
+/* Update user core by user_uid */
+db_result_t db_user_core_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profile_update_t* user);
+/* Update user UPDATE ALL by user_uid */
+db_result_t db_user_UPDATE_upd(PGconn* conn, uint64_t user_uid, user_profile_update_t* user);
 /* Delete user by user_uid */
 db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid);
 

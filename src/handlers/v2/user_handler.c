@@ -2,6 +2,7 @@
 
 #include "s3.h"
 #include "httpx.h"
+#include "utilities.h"
 
 void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
@@ -13,29 +14,31 @@ void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK,
-                          "{"
-                          "\"message\": {"
-                          "\"id\": %lu,"
-                          "\"created_at\": %ld,"
-                          "\"user_uid\": %lu,"
-                          "\"avatar\": \"%s\","
-                          "\"name\": \"%s\","
-                          "\"username\": \"%s\","
-                          "\"username_visible\": %s,"
-                          "\"email\": \"%s\","
-                          "\"email_visible\": %s,"
-                          "\"email_confirm\": %s,"
-                          "\"phone\": \"%s\","
-                          "\"phone_visible\": %s,"
-                          "\"overview\": \"%s\""
-                          "}"
-                          "}",
-                          ctx->user->id, ctx->user->created_at, ctx->user->user_uid, ctx->user->avatar ? ctx->user->avatar : "", ctx->user->name ? ctx->user->name : "",
-                          ctx->user->username ? ctx->user->username : "", ctx->user->username_visible ? "true" : "false",
-                          ctx->user->email ? ctx->user->email : "", ctx->user->email_visible ? "true" : "false",
-                          ctx->user->email_confirm ? "true" : "false", ctx->user->phone ? ctx->user->phone : "",
-                          ctx->user->phone_visible ? "true" : "false", ctx->user->overview ? ctx->user->overview : "");
+    // printf("%s\n", ctx->user->name);
+
+    *res = cHTTPX_ResJson(
+        cHTTPX_StatusOK,
+        "{"
+        "\"message\": {"
+        "\"id\": %lu,"
+        "\"created_at\": %ld,"
+        "\"user_uid\": %lu,"
+        "\"avatar\": \"%s\","
+        "\"name\": \"%s\","
+        "\"username\": \"%s\","
+        "\"username_visible\": %s,"
+        "\"email\": \"%s\","
+        "\"email_visible\": %s,"
+        "\"email_confirm\": %s,"
+        "\"phone\": \"%s\","
+        "\"phone_visible\": %s,"
+        "\"overview\": \"%s\""
+        "}"
+        "}",
+        ctx->user->id, ctx->user->created_at, ctx->user->user_uid, ctx->user->avatar ? ctx->user->avatar : "", ctx->user->name ? ctx->user->name : "",
+        ctx->user->username ? ctx->user->username : "", ctx->user->username_visible ? "true" : "false", ctx->user->email ? ctx->user->email : "",
+        ctx->user->email_visible ? "true" : "false", ctx->user->email_confirm ? "true" : "false", ctx->user->phone ? ctx->user->phone : "",
+        ctx->user->phone_visible ? "true" : "false", ctx->user->overview ? ctx->user->overview : "");
 
 cleanup:
     if (req->context)
@@ -140,22 +143,23 @@ cleanup:
     return;
 }
 
-void user_get_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *res)
+void user_get_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
     /* Get from params -> user_uid */
     const char* user_uid_param = cHTTPX_Param(req, "user_uid");
+    printf("%s\n", user_uid_param);
     if (!user_uid_param)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
 
     int user_uid = atoi(user_uid_param);
     if (user_uid < 0)
     {
-        *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
 
@@ -185,9 +189,8 @@ void user_get_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *res)
                           "}"
                           "}",
                           user->id, user->created_at, user->user_uid, user->avatar ? user->avatar : "", user->name ? user->name : "",
-                          user->username ? user->username : "", user->username_visible ? "true" : "false",
-                          user->email ? user->email : "", user->email_visible ? "true" : "false",
-                          user->email_confirm ? "true" : "false", user->phone ? user->phone : "",
+                          user->username ? user->username : "", user->username_visible ? "true" : "false", user->email ? user->email : "",
+                          user->email_visible ? "true" : "false", user->email_confirm ? "true" : "false", user->phone ? user->phone : "",
                           user->phone_visible ? "true" : "false", user->overview ? user->overview : "");
 
 cleanup:
@@ -201,7 +204,8 @@ cleanup:
             ctx->user = NULL;
         }
 
-        if (ctx->lang) free(ctx->lang);
+        if (ctx->lang)
+            free(ctx->lang);
         free(ctx);
 
         req->context = NULL;
@@ -214,4 +218,126 @@ cleanup:
     }
 
     return;
+}
+
+void user_update_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
+{
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    user_profile_update_t payload = {0};
+
+    chttpx_validation_t fields[] = {
+        chttpx_validation_string("username", &payload.username, false, 4, 24, VALIDATOR_NONE),
+        chttpx_validation_boolean("username_visible", &payload.username, false),
+        chttpx_validation_string("name", &payload.name, false, 2, 24, VALIDATOR_NONE),
+        chttpx_validation_string("email", &payload.email, false, 5, 254, VALIDATOR_EMAIL),
+        chttpx_validation_boolean("email_visible", &payload.email_visible, false),
+        chttpx_validation_string("phone", &payload.phone, false, 8, 254, VALIDATOR_NONE),
+        chttpx_validation_boolean("phone_visible", &payload.phone_visible, false),
+        chttpx_validation_string("overview", &payload.overview, false, 1, 125, VALIDATOR_NONE),
+        chttpx_validation_string("password", &payload.password, false, 8, 16, VALIDATOR_NONE),
+    };
+
+    if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
+        goto errorjson;
+
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
+
+    /* Trim spaces */
+    if (payload.username)
+        trim_space(payload.username);
+
+    if (payload.email)
+    {
+        trim_space(payload.email);
+        to_lower(payload.email);
+    }
+
+    /* Validate username */
+    if (payload.username && !is_valid(payload.username))
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.invalid-username", ctx->lang));
+        goto cleanup;
+    }
+
+    char* password_hash = NULL;
+
+    if (payload.password)
+    {
+        /* Trim space password */
+        trim_space(payload.password);
+        /* To lower string password */
+        to_lower(payload.password);
+
+        if (is_simple_password(payload.password))
+        {
+            *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.weak-password", ctx->lang));
+            goto cleanup;
+        }
+
+        password_hash = hash_password(payload.password);
+        if (!password_hash)
+        {
+            *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.password-hash-failed", ctx->lang));
+            goto cleanup;
+        }
+
+        payload.password = password_hash;
+    }
+
+    db_result_t user_db_result = db_user_UPDATE_upd(http_server->conn, ctx->user->user_uid, &payload);
+
+    switch (user_db_result)
+    {
+    case DB_TIMEOUT:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
+
+    case DB_DUPLICATE:
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
+
+    case DB_ERROR:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("profile-updated", ctx->lang));
+
+cleanup:
+    /* Payloads free */
+    free(payload.username);
+    free(payload.name);
+    free(payload.email);
+    free(payload.phone);
+    free(payload.overview);
+    free(payload.password);
+
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
+
+        if (ctx->lang)
+            free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
+    if (password_hash)
+        free(password_hash);
+
+    return;
+
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+
+    goto cleanup;
 }

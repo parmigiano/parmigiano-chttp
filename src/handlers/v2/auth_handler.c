@@ -375,7 +375,8 @@ cleanup:
         free(user);
     }
 
-    if (password_hash) free(password_hash);
+    if (password_hash)
+        free(password_hash);
 
     if (req->context)
     {
@@ -464,8 +465,6 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    free(session_id);
-
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
 
 cleanup:
@@ -489,6 +488,8 @@ cleanup:
 
         req->context = NULL;
     }
+
+    if (session_id) free(session_id);
 
     return;
 
