@@ -14,8 +14,6 @@ void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    // printf("%s\n", ctx->user->name);
-
     *res = cHTTPX_ResJson(
         cHTTPX_StatusOK,
         "{"
@@ -149,21 +147,22 @@ void user_get_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 
     /* Get from params -> user_uid */
     const char* user_uid_param = cHTTPX_Param(req, "user_uid");
-    printf("%s\n", user_uid_param);
     if (!user_uid_param)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
 
-    int user_uid = atoi(user_uid_param);
+    uint64_t user_uid = strtoull(user_uid_param, NULL, 10);
     if (user_uid < 0)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
 
-    user_info_t* user = db_user_info_get_by_uid(http_server->conn, (uint64_t)user_uid);
+    printf("%d\n", user_uid);
+
+    user_info_t* user = db_user_info_get_by_uid(http_server->conn, user_uid);
     if (!user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
@@ -267,8 +266,6 @@ void user_update_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     {
         /* Trim space password */
         trim_space(payload.password);
-        /* To lower string password */
-        to_lower(payload.password);
 
         if (is_simple_password(payload.password))
         {
@@ -284,6 +281,7 @@ void user_update_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* re
         }
 
         payload.password = password_hash;
+        password_hash = NULL;
     }
 
     db_result_t user_db_result = db_user_UPDATE_upd(http_server->conn, ctx->user->user_uid, &payload);
@@ -330,9 +328,6 @@ cleanup:
 
         req->context = NULL;
     }
-
-    if (password_hash)
-        free(password_hash);
 
     return;
 

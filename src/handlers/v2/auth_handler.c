@@ -219,8 +219,6 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     {
         /* Trim space password */
         trim_space(payload.password);
-        /* To lower string password */
-        to_lower(payload.password);
 
         if (is_simple_password(payload.password))
         {

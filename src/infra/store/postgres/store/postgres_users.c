@@ -107,6 +107,7 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
                         "    user_profile_accesses.email_visible,\n"
                         "    user_cores.email_confirm,\n"
                         "    user_profiles.phone,\n"
+                        "    user_profile_accesses.phone_visible,\n"
                         "    user_profiles.overview\n"
                         "FROM user_cores\n"
                         "LEFT JOIN user_profiles ON user_cores.user_uid = user_profiles.user_uid\n"
