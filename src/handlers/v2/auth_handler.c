@@ -61,14 +61,18 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
+    printf("user->password = %p\n", (void*)user->password);
+    if (user->password)
+        printf("first byte = 0x%02x\n", (unsigned char)user->password[0]);
+
     /* If user exist password, but not in payload -> 202 */
-    if (user->password && !payload.password)
+    if (user->password && user->password[0] != '\0' && !payload.password)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusAccepted, "{\"message\": \"%s\"}", cHTTPX_i18n_t("error.password-required", ctx->lang));
         goto cleanup;
     }
 
-    if (user->password && !verify_password(payload.password, user->password))
+    if (user->password && user->password[0] != '\0' && !verify_password(payload.password, user->password))
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;

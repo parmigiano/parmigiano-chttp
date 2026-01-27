@@ -17,19 +17,17 @@ struct upload_status
 
 static size_t payload_source(void* ptr, size_t size, size_t nmemb, void* userp)
 {
-    struct upload_status* upload_ctx = (struct upload_status*)userp;
+    struct upload_status* ctx = (struct upload_status*)userp;
+
+    if (ctx->bytes_read >= ctx->data_len) return 0;
+
     size_t max = size * nmemb;
-    size_t remaining = upload_ctx->data_len - upload_ctx->bytes_read;
+    size_t remaining = ctx->data_len - ctx->bytes_read;
+    size_t to_copy = remaining < max ? remaining : max;
 
-    if (remaining == 0)
-        return 0;
-
-    if (remaining > max)
-        remaining = max;
-
-    memcpy(ptr, upload_ctx->data + upload_ctx->bytes_read, remaining);
-    upload_ctx->bytes_read += remaining;
-    return remaining;
+    memcpy(ptr, ctx->data + ctx->bytes_read, to_copy);
+    ctx->bytes_read += to_copy;
+    return to_copy;
 }
 
 static void rfc2822_date(char* buffer, size_t size)
@@ -56,7 +54,7 @@ int send_email(const char* to, const char* subject, const char* body, const char
     const char* smtp_port = getenv("SMTP_PORT");
     const char* smtp_domain = getenv("SMTP_DOMAIN");
 
-    if (!smtp_server || !smtp_email || !smtp_pass || !smtp_port)
+    if (!smtp_server || !smtp_email || !smtp_pass || !smtp_port || !smtp_domain)
     {
         fprintf(stderr, "SMTP environment variables not set\n");
         return 1;
@@ -68,7 +66,7 @@ int send_email(const char* to, const char* subject, const char* body, const char
     rfc2822_date(date, sizeof(date));
     generate_message_id(message_id, sizeof(message_id), smtp_domain);
 
-    char payload[8192];
+    char payload[4096];
     snprintf(payload, sizeof(payload),
              "Date: %s\r\n"
              "To: %s\r\n"
