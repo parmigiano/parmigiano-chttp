@@ -134,7 +134,8 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 cleanup:
     /* Free payloads */
     free(payload.email);
-    free(payload.password);
+    if (payload.password)
+        free(payload.password);
 
     if (user)
     {
@@ -256,7 +257,9 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (!user_core)
     {
         fprintf(stderr, "calloc failed\n");
-        exit(1);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+
+        goto cleanup;
     }
     user_core->user_uid = uid;
     user_core->email = strdup(payload.email);
@@ -267,7 +270,9 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (!user_profile)
     {
         fprintf(stderr, "calloc failed\n");
-        exit(1);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+
+        goto cleanup;
     }
     user_profile->user_uid = uid;
     user_profile->name = strdup(payload.name);
@@ -279,7 +284,9 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (!user_profile_access)
     {
         fprintf(stderr, "calloc failed\n");
-        exit(1);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+
+        goto cleanup;
     }
     user_profile_access->user_uid = uid;
     user_profile_access->username_visible = true;
@@ -291,7 +298,9 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (!user_active)
     {
         fprintf(stderr, "calloc failed\n");
-        exit(1);
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+
+        goto cleanup;
     }
     user_active->user_uid = uid;
 
@@ -375,7 +384,9 @@ cleanup:
     free(payload.name);
     free(payload.username);
     free(payload.email);
-    free(payload.password);
+    
+    if (payload.password)
+        free(payload.password);
 
     if (user)
     {

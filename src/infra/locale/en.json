@@ -32,5 +32,6 @@
     "error.open-temporary-file": "couldn't open temporary file",
     "error.save-file": "couldn't save the file",
     "profile-updated": "The profile has been updated.",
-    "error.not-member-chat": "you are not a member of this chat"
+    "error.not-member-chat": "you are not a member of this chat",
+    "error.something-went-wrong": "oops, something went wrong"
 }
