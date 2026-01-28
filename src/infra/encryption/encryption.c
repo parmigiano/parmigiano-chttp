@@ -32,7 +32,7 @@ static unsigned char* base64_decode(const char* input, int* out_len)
     BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     bio = BIO_push(b64, bio);
 
-    int len = strlen(input) * 3 / 4;
+    int len = strlen(input) * 3 / 4 + 4;
     unsigned char* buffer = malloc(len);
 
     *out_len = BIO_read(bio, buffer, len);
@@ -46,13 +46,25 @@ char* encrypt(const char* plaintext)
     unsigned char* key = base64_decode(getenv("SUPER_SECRET_KEY"), &key_len);
     unsigned char* iv = base64_decode(getenv("IV"), &iv_len);
 
+    if (key_len != 32 || iv_len != 16)
+    {
+        free(key);
+        free(iv);
+        return NULL;
+    }
+
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 
-    unsigned char ciphertext[1024];
+    int plaintext_len = strlen(plaintext);
+    int block_size = EVP_CIPHER_block_size(EVP_aes_256_cbc());
+
+    unsigned char* ciphertext = malloc(plaintext_len + block_size);
+    if (!ciphertext) return NULL;
+
     int len = 0, clen = 0;
 
     EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-    EVP_EncryptUpdate(ctx, ciphertext, &len, (unsigned char*)plaintext, strlen(plaintext));
+    EVP_EncryptUpdate(ctx, ciphertext, &len, (unsigned char*)plaintext, plaintext_len);
     clen = len;
 
     EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
@@ -69,6 +81,7 @@ char* encrypt(const char* plaintext)
     char* b64 = base64_encode(out, clen + hlen);
 
     EVP_CIPHER_CTX_free(ctx);
+    free(ciphertext);
     free(key);
     free(iv);
     free(out);
@@ -102,7 +115,8 @@ char* decrypt(const char* cipher_b64)
     }
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    unsigned char plaintext[1024];
+    
+    unsigned char* plaintext = malloc(clen);
     int len = 0, plen = 0;
 
     EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
@@ -115,6 +129,7 @@ char* decrypt(const char* cipher_b64)
     char* out = strndup((char*)plaintext, plen);
 
     EVP_CIPHER_CTX_free(ctx);
+    free(plaintext);
     free(data);
     free(key);
     free(iv);
