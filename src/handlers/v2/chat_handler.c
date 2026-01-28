@@ -104,6 +104,99 @@ cleanup:
     return;
 }
 
+void chat_get_by_username_handler_v2(chttpx_request_t *req, chttpx_response_t *res)
+{
+    auth_token_t* ctx = (auth_token_t*)req->context;
+
+    const char* username_param = cHTTPX_Param(req, "username");
+
+    chat_preview_LIST_t* chats_preview = NULL;
+    chats_preview = db_chat_get_by_username(http_server->conn, ctx->user->user_uid, username_param);
+    if (!chats_preview || chats_preview->count == 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": []}");
+        goto cleanup;
+    }
+
+    size_t capacity = 8192;
+    char* json = malloc(capacity);
+    size_t len_json = 0;
+
+    len_json += snprintf(json + len_json, capacity - len_json, "{\"message\": [");
+
+    for (size_t i = 0; i < chats_preview->count; i++)
+    {
+        chat_preview_t* chat = &chats_preview->items[i];
+
+        char item[2048];
+
+        snprintf(item, sizeof(item),
+                 "{"
+                 "\"id\":%lu,"
+                 "\"name\":\"%s\","
+                 "\"username\":\"%s\","
+                 "\"avatar\":\"%s\","
+                 "\"user_uid\":%lu,"
+                 "\"last_message\":\"%s\","
+                 "\"last_message_date\":%ld,"
+                 "\"unread_message_count\":%u"
+                 "}%s",
+                 chat->id, chat->name ? chat->name : "", chat->username ? chat->username : "", chat->avatar ? chat->avatar : "", chat->user_uid,
+                 chat->last_message ? chat->last_message : "", chat->last_message_date, chat->unread_message_count,
+                 (i + 1 < chats_preview->count) ? "," : "");
+
+        size_t need_len = strlen(item);
+
+        if (len_json + need_len + 1 > capacity)
+        {
+            capacity *= 2;
+            json = realloc(json, capacity);
+        }
+
+        memcpy(json + len_json, item, need_len);
+        len_json += need_len;
+    }
+
+    snprintf(json + len_json, capacity - len_json, "]}");
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "%s", json);
+
+    free(json);
+
+cleanup:
+    if (req->context)
+    {
+        auth_token_t* ctx = (auth_token_t*)req->context;
+
+        if (ctx->user)
+        {
+            db_user_info_free(ctx->user);
+            ctx->user = NULL;
+        }
+
+        if (ctx->lang) free(ctx->lang);
+        free(ctx);
+
+        req->context = NULL;
+    }
+
+    if (chats_preview)
+    {
+        for (size_t i = 0; i < chats_preview->count; i++)
+        {
+            free(chats_preview->items[i].name);
+            free(chats_preview->items[i].username);
+            free(chats_preview->items[i].avatar);
+            free(chats_preview->items[i].last_message);
+        }
+
+        free(chats_preview);
+        chats_preview = NULL;
+    }
+
+    return;
+}
+
 void chat_get_settings_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;

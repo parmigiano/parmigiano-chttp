@@ -538,6 +538,62 @@
         }
       }
     },
+    "/chats/u/{username}": {
+      "get": {
+        "summary": "Get chat settings by username",
+        "description": "Returns chat settings such as custom background and block status",
+        "tags": ["Chats"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "Username",
+            "schema": {
+              "type": "string",
+              "example": "ghost"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat settings successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSetting"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chats/{chat_id}": {
       "get": {
         "summary": "Get chat settings by chat id",

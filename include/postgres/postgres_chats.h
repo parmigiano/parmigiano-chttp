@@ -60,6 +60,8 @@ typedef struct {
 
 /* Get my history chats [limit 15 chats] */
 chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, size_t offset);
+/* Get chats/users bu username */
+chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, const char* username);
 /* Get chat members by chat_id */
 chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_id, uint64_t user_uid);
 /* Check exists or nah user in chat members by chat_id */
