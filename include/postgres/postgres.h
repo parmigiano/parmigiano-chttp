@@ -58,13 +58,13 @@ void run_migrations(PGconn* conn);
 /* One row SELECT result */
 typedef struct {
     char **columns;
-    int n_columns;
+    size_t n_columns;
 } db_row_t;
 
 // many SELECT result
 typedef struct {
     db_row_t *rows;
-    int n_rows;
+    size_t n_rows;
 } db_result_set_t;
 
 /* Exec INSERT/UPDATE/DELETE */

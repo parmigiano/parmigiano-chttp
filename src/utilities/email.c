@@ -19,7 +19,8 @@ static size_t payload_source(void* ptr, size_t size, size_t nmemb, void* userp)
 {
     struct upload_status* ctx = (struct upload_status*)userp;
 
-    if (ctx->bytes_read >= ctx->data_len) return 0;
+    if (ctx->bytes_read >= ctx->data_len)
+        return 0;
 
     size_t max = size * nmemb;
     size_t remaining = ctx->data_len - ctx->bytes_read;

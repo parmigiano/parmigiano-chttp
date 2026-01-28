@@ -26,4 +26,7 @@ void user_upload_avatar_handler_v2(chttpx_request_t *req, chttpx_response_t *res
 void user_get_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
 void user_update_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
 
+/* Chat handlers */
+void chat_get_my_history_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+
 #endif

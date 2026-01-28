@@ -19,4 +19,7 @@ void routes(void)
     cHTTPX_RegisterRoute(&v2, "PATCH", "/users/me", user_update_profile_handler_v2);
     cHTTPX_RegisterRoute(&v2, "PATCH", "/users/me/avatar", user_upload_avatar_handler_v2);
     cHTTPX_RegisterRoute(&v2, "GET", "/users/{user_uid}", user_get_profile_handler_v2);
+    /* Chat routes */
+    /* /chats?offset=0 */
+    cHTTPX_RegisterRoute(&v2, "GET", "/chats", chat_get_my_history_handler_v2);
 }

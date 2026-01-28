@@ -441,6 +441,9 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
+    if (user->email_confirm)
+        goto confirmed;
+
     db_result_t user_confirm_db_result = db_user_core_upd_email_confirm(http_server->conn, true, payload.email);
 
     switch (user_confirm_db_result)
@@ -458,6 +461,7 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
+confirmed:
     session_t session = {.user_uid = user->user_uid, .expires_at = time(NULL) + REDIS_SESSION_TTL};
 
     char* session_id = redis_session_create(&session);
@@ -491,7 +495,8 @@ cleanup:
         req->context = NULL;
     }
 
-    if (session_id) free(session_id);
+    if (session_id)
+        free(session_id);
 
     return;
 

@@ -106,9 +106,9 @@ void free_result_set(db_result_set_t* rc)
     if (!rc)
         return;
 
-    for (int i = 0; i < rc->n_rows; i++)
+    for (size_t i = 0; i < rc->n_rows; i++)
     {
-        for (int j = 0; j < rc->rows[i].n_columns; j++)
+        for (size_t j = 0; j < rc->rows[i].n_columns; j++)
         {
             free(rc->rows[i].columns[j]);
         }

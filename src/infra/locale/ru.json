@@ -31,5 +31,6 @@
     "error.no-data-to-process": "нет данных для обработки",
     "error.open-temporary-file": "не удалось открыть временный файл",
     "error.save-file": "не удалось сохранить файл",
-    "profile-updated": "Профиль обновлен."
+    "profile-updated": "Профиль обновлен.",
+    "error.not-member-chat": "вы не состоите в этом чате"
 }

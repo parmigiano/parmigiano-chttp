@@ -147,20 +147,13 @@ void user_get_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 
     /* Get from params -> user_uid */
     const char* user_uid_param = cHTTPX_Param(req, "user_uid");
-    if (!user_uid_param)
+    if (!user_uid_param || *user_uid_param == '\0')
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
 
     uint64_t user_uid = strtoull(user_uid_param, NULL, 10);
-    if (user_uid < 0)
-    {
-        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
-        goto cleanup;
-    }
-
-    printf("%d\n", user_uid);
 
     user_info_t* user = db_user_info_get_by_uid(http_server->conn, user_uid);
     if (!user)
