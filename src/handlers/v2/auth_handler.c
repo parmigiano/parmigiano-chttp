@@ -43,6 +43,9 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         chttpx_validation_string("password", &payload.password, false, 8, 16, VALIDATOR_NONE),
     };
 
+    /* DB. get user core */
+    user_core_t* user = NULL;
+
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
         goto errorjson;
 
@@ -54,16 +57,12 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* To lower email */
     to_lower(payload.email);
 
-    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
+    user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
         goto cleanup;
     }
-
-    printf("user->password = %p\n", (void*)user->password);
-    if (user->password)
-        printf("first byte = 0x%02x\n", (unsigned char)user->password[0]);
 
     /* If user exist password, but not in payload -> 202 */
     if (user->password && user->password[0] != '\0' && !payload.password)
@@ -142,6 +141,7 @@ cleanup:
         free(user->email);
         free(user->password);
         free(user);
+        user = NULL;
     }
 
     if (req->context)
@@ -176,6 +176,9 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         chttpx_validation_string("password", &payload.password, false, 8, 16, VALIDATOR_NONE),
     };
 
+    /* DB. get user core */
+    user_core_t* user = NULL;
+
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
         goto errorjson;
 
@@ -209,7 +212,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     to_lower(payload.email);
 
     /* Check user is exists */
-    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
+    user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-already-registered", ctx->lang));
@@ -298,13 +301,17 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     free(user_core->email);
     free(user_core->password);
     free(user_core);
+    user_core = NULL;
 
     free(user_profile->name);
     free(user_profile->username);
     free(user_profile);
+    user_profile = NULL;
 
     free(user_profile_access);
+    user_profile_access = NULL;
     free(user_active);
+    user_active = NULL;
 
     switch (user_db_result)
     {
@@ -375,6 +382,7 @@ cleanup:
         free(user->email);
         free(user->password);
         free(user);
+        user = NULL;
     }
 
     if (password_hash)
@@ -410,6 +418,9 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         chttpx_validation_integer("code", &payload.code, true),
     };
 
+    /* DB. get user core */
+    user_core_t* user = NULL;
+
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
         goto errorjson;
 
@@ -434,7 +445,7 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    user_core_t* user = db_user_core_get_by_email(http_server->conn, payload.email);
+    user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-not-found", ctx->lang));
@@ -482,6 +493,7 @@ cleanup:
         free(user->email);
         free(user->password);
         free(user);
+        user = NULL;
     }
 
     if (req->context)

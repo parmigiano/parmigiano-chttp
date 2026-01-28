@@ -16,7 +16,8 @@ void chat_get_my_history_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     if (offset_query && *offset_query != '\0')
         offset = strtoull(offset_query, NULL, 10);
 
-    chat_preview_LIST_t* chats_preview = db_chat_get_my_history(http_server->conn, ctx->user->user_uid, offset);
+    chat_preview_LIST_t* chats_preview = NULL;
+    chats_preview = db_chat_get_my_history(http_server->conn, ctx->user->user_uid, offset);
     if (!chats_preview || chats_preview->count == 0)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": []}");
@@ -97,6 +98,7 @@ cleanup:
         }
 
         free(chats_preview);
+        chats_preview = NULL;
     }
 
     return;
@@ -105,6 +107,9 @@ cleanup:
 void chat_get_settings_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
+
+    /* DB. get chat setting */
+    chat_setting_t* chat_setting = NULL;
 
     const char* chat_id_param = cHTTPX_Param(req, "chat_id");
 
@@ -119,7 +124,7 @@ void chat_get_settings_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    chat_setting_t* chat_setting = db_chat_get_setting_by_chat_id(http_server->conn, chat_id);
+    chat_setting = db_chat_get_setting_by_chat_id(http_server->conn, chat_id);
     if (!chat_setting)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusNotFound, "{\"message\": \"NULL\"}");
