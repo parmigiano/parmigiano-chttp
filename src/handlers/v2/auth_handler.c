@@ -168,6 +168,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 
     /* DB. get user core */
     user_core_t* user = NULL;
+    char* password_hash = NULL;
 
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
         goto errorjson;
@@ -214,8 +215,6 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 
         goto cleanup;
     }
-
-    char* password_hash = NULL;
 
     /* Validation password and hash password */
     if (payload.password)

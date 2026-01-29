@@ -3,6 +3,7 @@
 #include "handlers.h"
 #include "postgres/postgres_users.h"
 
+#include <stdio.h>
 #include <libchttpx/libchttpx.h>
 
 void auth_context_free(void* ptr)
@@ -45,7 +46,7 @@ chttpx_middleware_result_t language_middleware(chttpx_request_t* req, chttpx_res
         ctx = calloc(1, sizeof(auth_token_t));
         if (!ctx)
         {
-            printf(stderr, "calloc failed\n");
+            fprintf(stderr, "calloc failed\n");
 
             *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.context-initialization", lang_code));
             return out;
