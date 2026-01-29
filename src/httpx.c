@@ -106,5 +106,5 @@ static void _cors()
         origins_count = sizeof(allowed_origins_dev) / sizeof(allowed_origins_dev[0]);
     }
 
-    cHTTPX_Cors(allowed_origins, origins_count, NULL, "Content-Type, Authorization, Accept-Language");
+    cHTTPX_Cors(allowed_origins, origins_count, NULL, "Content-Type, Authorization, Accept-Language, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto, Upgrade, Connection, Host");
 }

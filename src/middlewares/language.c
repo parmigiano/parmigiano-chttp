@@ -39,6 +39,7 @@ chttpx_middleware_result_t language_middleware(chttpx_request_t* req, chttpx_res
     }
     else
     {
+        if (ctx->lang) free(ctx->lang);
         ctx->lang = strdup(lang_code);
     }
 
