@@ -16,7 +16,7 @@ chttpx_middleware_result_t email_confirmed_middleware(chttpx_request_t* req, cht
     auth_token_t* ctx = (auth_token_t*)req->context;
     if (!ctx->lang)
     {
-        ctx->lang = LANGUAGE_BASE;
+        ctx->lang = strdup(LANGUAGE_BASE);
     }
 
     if (!ctx || !ctx->user || !ctx->user->email_confirm)

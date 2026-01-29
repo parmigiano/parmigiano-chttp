@@ -61,7 +61,7 @@ chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, siz
     chat_preview_LIST_t* list = malloc(sizeof(chat_preview_LIST_t));
     if (!list)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;
@@ -157,7 +157,7 @@ chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, co
     chat_preview_LIST_t* list = malloc(sizeof(chat_preview_LIST_t));
     if (!list)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;
@@ -221,7 +221,7 @@ chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_i
     chat_member_LIST_t* list = malloc(sizeof(chat_member_LIST_t));
     if (!list)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;
@@ -305,7 +305,7 @@ chat_setting_t* db_chat_get_setting_by_chat_id(PGconn* conn, uint64_t chat_id)
     chat_setting_t* chat_setting = malloc(sizeof(chat_setting_t));
     if (!chat_setting)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;

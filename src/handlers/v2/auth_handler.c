@@ -145,17 +145,6 @@ cleanup:
         user = NULL;
     }
 
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     return;
 
 errorjson:
@@ -217,6 +206,12 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (user)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.user-already-registered", ctx->lang));
+
+        free(user->email);
+        free(user->password);
+        free(user);
+        user = NULL;
+
         goto cleanup;
     }
 
@@ -388,27 +383,8 @@ cleanup:
     if (payload.password)
         free(payload.password);
 
-    if (user)
-    {
-        free(user->email);
-        free(user->password);
-        free(user);
-        user = NULL;
-    }
-
     if (password_hash)
         free(password_hash);
-
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
 
     return;
 
@@ -507,17 +483,6 @@ cleanup:
         user = NULL;
     }
 
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (session_id)
         free(session_id);
 
@@ -556,22 +521,6 @@ void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("user-deleted", ctx->lang));
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
 
     return;
 }

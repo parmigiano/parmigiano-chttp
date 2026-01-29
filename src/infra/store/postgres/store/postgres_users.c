@@ -132,7 +132,7 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
     user_info_t* user = malloc(sizeof(user_info_t));
     if (!user)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;
@@ -192,7 +192,7 @@ user_core_t* db_user_core_get_by_email(PGconn* conn, char* email)
     user_core_t* user = malloc(sizeof(user_core_t));
     if (!user)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;
@@ -237,7 +237,7 @@ user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid)
     user_core_t* user = malloc(sizeof(user_core_t));
     if (!user)
     {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
         return NULL;

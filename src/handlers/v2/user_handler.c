@@ -39,22 +39,6 @@ void user_me_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         ctx->user->phone_visible ? "true" : "false", ctx->user->overview ? ctx->user->overview : "");
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
 
     return;
 }
@@ -115,23 +99,6 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", url);
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (url)
         free(url);
 
@@ -189,23 +156,6 @@ void user_get_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
                           user->phone_visible ? "true" : "false", user->overview ? user->overview : "");
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (user)
     {
         db_user_info_free(user);
@@ -307,23 +257,6 @@ cleanup:
     free(payload.phone);
     free(payload.overview);
     free(payload.password);
-
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
 
     return;
 

@@ -70,23 +70,6 @@ void chat_get_my_history_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     free(json);
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (chats_preview)
     {
         for (size_t i = 0; i < chats_preview->count; i++)
@@ -164,22 +147,6 @@ void chat_get_by_username_handler_v2(chttpx_request_t *req, chttpx_response_t *r
     free(json);
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang) free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (chats_preview)
     {
         for (size_t i = 0; i < chats_preview->count; i++)
@@ -241,23 +208,6 @@ void chat_get_settings_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
                           chat_setting->who_blocked_uid);
 
 cleanup:
-    if (req->context)
-    {
-        auth_token_t* ctx = (auth_token_t*)req->context;
-
-        if (ctx->user)
-        {
-            db_user_info_free(ctx->user);
-            ctx->user = NULL;
-        }
-
-        if (ctx->lang)
-            free(ctx->lang);
-        free(ctx);
-
-        req->context = NULL;
-    }
-
     if (chat_setting)
     {
         free(chat_setting->custom_background);
