@@ -12,10 +12,10 @@ typedef struct {
     char* region;
 } s3_config_t;
 
-char* s3_upload_file(FILE* f, const char* filename, s3_config_t* cfg);
+char* s3_upload_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg);
 
-int s3_delete_file(const char* filename, s3_config_t* cfg);
+int s3_delete_file(const char* key, s3_config_t* cfg);
 
-char* s3_update_file(FILE* f, const char* filename, s3_config_t* cfg);
+char* s3_update_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg);
 
 #endif

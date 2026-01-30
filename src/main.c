@@ -1,10 +1,14 @@
-#include <libchttpx/libchttpx.h>
-
 #include "httpx.h"
 #include "utilities.h"
 
+#include <time.h>
+#include <stdlib.h>
+#include <libchttpx/libchttpx.h>
+
 int main()
 {
+    srand(time(NULL));
+
     /* ENV.. */
     env_init(".env"); /* .env.production */
 

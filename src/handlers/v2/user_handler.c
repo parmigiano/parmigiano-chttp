@@ -47,6 +47,9 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 
+    /* Initial URL avatar */
+    char* url = NULL;
+
     if (req->filename[0] == '\0')
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.no-data-to-process", ctx->lang));
@@ -68,11 +71,15 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
         .region = getenv("S3_REGION"),
     };
 
+    /* key for s3 storage */
+    char s3_avatar_key[128];
+    snprintf(s3_avatar_key, sizeof(s3_avatar_key), "avatar_user_uid_%ld", ctx->user->user_uid);
+
     /* save to s3 storage */
-    char* url = s3_upload_file(f, req->filename, &s3_config);
+    url = s3_upload_file(f, req->filename, req->content_type, s3_avatar_key, &s3_config);
     fclose(f);
 
-    if (!url)
+    if (!url || *url == '\0')
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.save-file", ctx->lang));
         goto cleanup;

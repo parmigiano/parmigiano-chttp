@@ -378,7 +378,7 @@ cleanup:
     free(payload.name);
     free(payload.username);
     free(payload.email);
-    
+
     if (payload.password)
         free(payload.password);
 
@@ -396,6 +396,9 @@ errorjson:
 void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
+
+    /* Initial session id */
+    char* session_id = NULL;
 
     auth_verify_t payload = {0};
 
@@ -461,7 +464,7 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 confirmed:
     session_t session = {.user_uid = user->user_uid, .expires_at = time(NULL) + REDIS_SESSION_TTL};
 
-    char* session_id = redis_session_create(&session);
+    session_id = redis_session_create(&session);
     if (!session_id)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.session-creation-error", ctx->lang));

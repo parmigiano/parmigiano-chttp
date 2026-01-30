@@ -87,7 +87,7 @@ cleanup:
     return;
 }
 
-void chat_get_by_username_handler_v2(chttpx_request_t *req, chttpx_response_t *res)
+void chat_get_by_username_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
     auth_token_t* ctx = (auth_token_t*)req->context;
 

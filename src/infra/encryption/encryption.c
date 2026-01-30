@@ -59,7 +59,8 @@ char* encrypt(const char* plaintext)
     int block_size = EVP_CIPHER_block_size(EVP_aes_256_cbc());
 
     unsigned char* ciphertext = malloc(plaintext_len + block_size);
-    if (!ciphertext) return NULL;
+    if (!ciphertext)
+        return NULL;
 
     int len = 0, clen = 0;
 
@@ -115,7 +116,7 @@ char* decrypt(const char* cipher_b64)
     }
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    
+
     unsigned char* plaintext = malloc(clen);
     int len = 0, plen = 0;
 

@@ -344,70 +344,71 @@
         "requestBody": {
           "required": true,
           "content": {
-            "multipart/form-data": {
+            "image/jpeg": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "avatar": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "The image file for the avatar"
-                  }
-                },
-                "required": ["avatar"]
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "Avatar uploaded successfully",
-          "content": {
-            "application/json": {
+                "type": "string",
+                "format": "binary"
+              },
+              "description": "Upload a JPEG avatar"
+            },
+            "image/png": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "string",
-                    "example": "https://s3.example.com/avatar/123.png"
-                  }
-                },
-                "required": ["message"]
-              }
+                "type": "string",
+                "format": "binary"
+              },
+              "description": "Upload a PNG avatar"
             }
           }
         },
-        "400": {
-          "description": "Request error or duplicate",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "error": {
-                    "type": "string",
-                    "example": "There is no data to process"
-                  }
-                },
-                "required": ["error"]
+        "responses": {
+          "200": {
+            "description": "Avatar uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "https://s3.example.com/avatar/123.png"
+                    }
+                  },
+                  "required": ["message"]
+                }
               }
             }
-          }
-        },
-        "500": {
-          "description": "Server error",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "error": {
-                    "type": "string",
-                    "example": "Couldn't save the file"
-                  }
-                },
-                "required": ["error"]
+          },
+          "400": {
+            "description": "Request error or duplicate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "There is no data to process"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Couldn't save the file"
+                    }
+                  },
+                  "required": ["error"]
+                }
               }
             }
           }

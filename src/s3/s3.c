@@ -1,82 +1,130 @@
 #include "s3.h"
 
+#include <libs3.h>
 #include <string.h>
-#include <curl/curl.h>
+#include <uuid/uuid.h>
 
-struct s3_upload_ctx
+typedef struct
 {
     FILE* file;
-};
+} s3_upload_ctx_t;
 
-size_t read_callback(void* ptr, size_t size, size_t nmemb, void* userdata)
+static int put_object_cb(int bufferSize, char* buffer, void* callbackData)
 {
-    struct s3_upload_ctx* ctx = (struct s3_upload_ctx*)userdata;
-    return fread(ptr, size, nmemb, ctx->file);
+    s3_upload_ctx_t* ctx = (s3_upload_ctx_t*)callbackData;
+    return fread(buffer, 1, bufferSize, ctx->file);
 }
 
-char* s3_upload_file(FILE* f, const char* filename, s3_config_t* cfg)
+static void response_complete_cb(S3Status status, const S3ErrorDetails* error, void* callbackData)
+{
+    (void)callbackData;
+
+    if (status != S3StatusOK)
+    {
+        fprintf(stderr, "S3 error: %s\n", error && error->message ? error->message : "unknown");
+    }
+}
+
+static S3BucketContext make_bucket_ctx(s3_config_t* cfg)
+{
+    S3BucketContext ctx;
+    memset(&ctx, 0, sizeof(ctx));
+
+    ctx.hostName = cfg->endpoint;
+    ctx.bucketName = cfg->bucket;
+    ctx.protocol = S3ProtocolHTTPS;
+    ctx.uriStyle = S3UriStylePath;
+    ctx.accessKeyId = cfg->access_key;
+    ctx.secretAccessKey = cfg->secret_key;
+    ctx.authRegion = cfg->region;
+
+    return ctx;
+}
+
+static char* create_unique_key(const char* filename, const char* key_p)
+{
+    if (!filename || !key_p)
+        return NULL;
+
+    /* Get .ext file */
+    const char* ext = strrchr(filename, '.');
+    if (!ext)
+        ext = ".tmp";
+
+    /* UUID */
+    uuid_t binuuid;
+    char uuid_str[37];
+
+    uuid_generate_random(binuuid);
+    uuid_unparse_lower(binuuid, uuid_str);
+    /* UUID */
+
+    char uniq_key[512];
+    snprintf(uniq_key, sizeof(uniq_key), "%s/%s%s", key_p, uuid_str, ext);
+
+    return strdup(uniq_key);
+}
+
+char* s3_upload_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
 {
     if (!f || !filename || !cfg)
         return NULL;
 
-    CURL* curl = curl_easy_init();
-    if (!curl)
+    if (S3_initialize("parmigianochat/v2", S3_INIT_ALL, cfg->endpoint) != S3StatusOK)
         return NULL;
 
     fseek(f, 0, SEEK_END);
-    curl_off_t file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    long size = ftell(f);
+    rewind(f);
+
+    s3_upload_ctx_t upload_ctx = {.file = f};
+    S3BucketContext bucket = make_bucket_ctx(cfg);
+
+    S3PutObjectHandler handler = {.responseHandler = {.completeCallback = response_complete_cb, .propertiesCallback = NULL},
+                                  .putObjectDataCallback = put_object_cb};
+
+    char* unique_key = create_unique_key(filename, key);
+    if (!unique_key)
+        unique_key = strdup(key);
+
+    S3PutProperties put_props;
+    memset(&put_props, 0, sizeof(put_props));
+
+    put_props.contentType = content_type;
+
+    S3_put_object(&bucket, unique_key, (uint64_t)size, &put_props, NULL, 0, &handler, &upload_ctx);
+
+    S3_deinitialize();
 
     char url[1024];
-    snprintf(url, sizeof(url), "%s/%s/%s", cfg->endpoint, cfg->bucket, filename);
-
-    struct s3_upload_ctx ctx = {.file = f};
-
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-    curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
-    curl_easy_setopt(curl, CURLOPT_READDATA, &ctx);
-    curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, file_size);
-
-    curl_easy_setopt(curl, CURLOPT_USERNAME, cfg->access_key);
-    curl_easy_setopt(curl, CURLOPT_PASSWORD, cfg->secret_key);
-
-    CURLcode res = curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
-
-    if (res != CURLE_OK)
-        return NULL;
+    snprintf(url, sizeof(url), "https://%s/%s/%s", cfg->endpoint, cfg->bucket, unique_key);
 
     return strdup(url);
 }
 
-int s3_delete_file(const char* filename, s3_config_t* cfg)
+int s3_delete_file(const char* key, s3_config_t* cfg)
 {
-    if (!filename || !cfg)
+    if (!key || !cfg)
         return 1;
 
-    CURL* curl = curl_easy_init();
-    if (!curl)
+    if (S3_initialize("parmigianochat/v2", S3_INIT_ALL, cfg->endpoint) != S3StatusOK)
         return 1;
 
-    char url[1024];
-    snprintf(url, sizeof(url), "%s/%s/%s", cfg->endpoint, cfg->bucket, filename);
+    S3BucketContext bucket = make_bucket_ctx(cfg);
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-    curl_easy_setopt(curl, CURLOPT_USERNAME, cfg->access_key);
-    curl_easy_setopt(curl, CURLOPT_PASSWORD, cfg->secret_key);
+    S3ResponseHandler handler = {.completeCallback = response_complete_cb, .propertiesCallback = NULL};
 
-    CURLcode res = curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
+    S3_delete_object(&bucket, key, NULL, 0, &handler, NULL);
 
-    return (res == CURLE_OK) ? 0 : 1;
+    S3_deinitialize();
+
+    return 0;
 }
 
-char* s3_update_file(FILE* f, const char* filename, s3_config_t* cfg)
+char* s3_update_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
 {
     if (s3_delete_file(filename, cfg) != 0)
         return NULL;
 
-    return s3_upload_file(f, filename, cfg);
+    return s3_upload_file(f, filename, content_type, key, cfg);
 }
