@@ -27,13 +27,12 @@ jobs:
 
           - name: Install libs3
             run: |
-                sudo apt install -y git cmake
+                sudo apt install -y git make
 
                 git clone https://github.com/bji/libs3.git /tmp/libs3
                 cd /tmp/libs3
                 
-                cmake .
-                make
+                sudo make
                 sudo make install
 
           - name: Build binary
