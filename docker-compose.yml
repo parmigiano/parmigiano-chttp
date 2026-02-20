@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: parmigiano
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+  redis:
+    image: redis:8
+    command: redis-server --requirepass redispass
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  http_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=parmigiano
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+
+      - SUPER_SECRET_KEY=PARMIGIANO_SUPER_SECRET_KEY_TEST_SSSSSSSSSS=
+      - IV=PARMIGIANO_IV_TEST_SSS==
+
+      - APPKEY_TOKEN=PARMIGIANO_APPKEY_TOKEN_TEST|app
+
+      - SMTP_EMAIL=example@test.com
+      - SMTP_ADDR=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_PASSWORD=password
+      - SMTP_DOMAIN=gmail.com
+
+      - SERVER_BASE_ADDR=http://localhost:8080/api
+
+      - S3_PATH_STYLE=https://s3.regru.cloud/S3_PATH_STYLE
+      - S3_VIRTUAL_HOSTED_STYLE=https://<S3_PATH_STYLE>.s3.regru.cloud
+      - S3_ENDPOINT=s3.regru.cloud
+      - S3_ACCESS_KEY=access_key
+      - S3_SECRET_KEY=secret
+      - S3_BUCKET=bucket
+      - S3_REGION=ru-1
+      - S3_USE_SSL=true
+
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispass
+
+      - LOG_DIR=./logs
+
+      - I18N_LOCATE=./src/infra/locale
+
+      - TYPE=DEV # PROD
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

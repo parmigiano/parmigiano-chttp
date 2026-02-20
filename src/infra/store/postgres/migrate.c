@@ -7,7 +7,7 @@
 #include <dirent.h>
 #include <string.h>
 
-#define FOLDER_SQL_MIGRATIONS "src/infra/store/postgres/migrations"
+#define FOLDER_SQL_MIGRATIONS "./src/infra/store/postgres/migrations"
 
 static char* read_file_migrate(const char* path)
 {

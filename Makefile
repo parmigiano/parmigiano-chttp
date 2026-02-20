@@ -2,7 +2,7 @@ TARGET=server-http
 
 CC = gcc
 # CFLAGS = -fsanitize=address -fno-omit-frame-pointer -g -O1 -Wall -Wextra -O2 -Iinclude -I/usr/include/postgresql -I/usr/local/include/libchttpx -I/usr/include/hiredis
-CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/include/postgresql -I/usr/local/include/libchttpx -I/usr/include/hiredis
+CFLAGS = -Wall -Wextra -O2 -Iinclude -I/usr/local/include -I/usr/include/postgresql -I/usr/include/hiredis
 CLANG_FORMAT = clang-format
 
 OBJDIR = .out
