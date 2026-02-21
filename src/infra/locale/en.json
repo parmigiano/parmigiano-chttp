@@ -33,5 +33,8 @@
     "error.save-file": "couldn't save the file",
     "profile-updated": "The profile has been updated.",
     "error.not-member-chat": "you are not a member of this chat",
-    "error.something-went-wrong": "oops, something went wrong"
+    "error.something-went-wrong": "oops, something went wrong",
+    "error.s3-cloud": "error when working with the file service",
+    "error.forbidden-file-extension": "forbidden file extension",
+    "error.chat-setting-not-found": "chat settings were not found"
 }

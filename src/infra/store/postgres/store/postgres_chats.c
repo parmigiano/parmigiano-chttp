@@ -1,6 +1,134 @@
 #include "postgres/postgres.h"
 #include "postgres/postgres_chats.h"
 
+db_result_t db_chat_create(PGconn* conn, chat_t* chat, uint64_t* out_chat_id)
+{
+    const char* query = "INSERT INTO chats (chat_type, title, description) VALUES ($1, $2, $3) RETURNING id";
+    const char* params[3] = {chat->chat_type, chat->title, chat->description ? chat->description : ""};
+
+    time_t start = time(NULL);
+    int timeout_sec = 5;
+
+    while (1)
+    {
+        PGresult* res = PQexecParams(conn, query, 3, NULL, params, NULL, NULL, 0);
+        if (!res)
+            return DB_ERROR;
+
+        ExecStatusType status = PQresultStatus(res);
+
+        if (status == PGRES_TUPLES_OK)
+        {
+            if (PQntuples(res) != 1)
+            {
+                PQclear(res);
+                return DB_ERROR;
+            }
+
+            const char* id_str = PQgetvalue(res, 0, 0);
+            *out_chat_id = strtoull(id_str, NULL, 10);
+
+            PQclear(res);
+            return DB_OK;
+        }
+
+        if (status == PGRES_FATAL_ERROR)
+        {
+            fprintf(stderr, "DB error: %s\n", PQresultErrorMessage(res));
+            PQclear(res);
+            return DB_ERROR;
+        }
+
+        PQclear(res);
+
+        if (difftime(time(NULL), start) > timeout_sec)
+            return DB_TIMEOUT;
+    }
+}
+
+db_result_t db_chat_create_members(PGconn* conn, uint64_t chat_id, chat_member_t* members, size_t members_count)
+{
+    const char* query = "INSERT INTO chat_members (chat_id, user_uid, role) SELECT $1, u, r FROM unnest($2::bigint[], $3::text[]) AS t(u, r)";
+
+    /* convert -> char */
+    static char chat_id_str[32];
+    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+
+    char user_uids[4096] = "{";
+    char roles[4096] = "{";
+
+    for (size_t i = 0; i < members_count; i++)
+    {
+        char tmp[64];
+
+        snprintf(tmp, sizeof(tmp), "%lu", members[i].user_uid);
+        strcat(user_uids, tmp);
+
+        strcat(roles, "\"");
+        strcat(roles, members[i].role);
+        strcat(roles, "\"");
+
+        if (i + 1 < members_count)
+        {
+            strcat(user_uids, ",");
+            strcat(roles, ",");
+        }
+    }
+
+    strcat(user_uids, "}");
+    strcat(roles, "}");
+
+    const char* params[3] = {chat_id_str, user_uids, roles};
+
+    return execute_sql(conn, query, params, 3);
+}
+
+db_result_t db_chat_create_setting(PGconn* conn, uint64_t chat_id, chat_setting_t* setting)
+{
+    const char* query = "INSERT INTO chat_settings (chat_id) VALUES ($1)";
+
+    /* convert -> char */
+    static char chat_id_str[32];
+    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+
+    const char* params[1] = {chat_id_str};
+
+    return execute_sql(conn, query, params, 1);
+}
+
+db_result_t db_chat_create_all(PGconn* conn, chat_t* chat, chat_member_t* members, size_t members_count, chat_setting_t* setting,
+                               uint64_t* out_chat_id)
+{
+    execute_sql(conn, "BEGIN", NULL, 0);
+
+    db_result_t rc;
+
+    uint64_t chat_id;
+    rc = db_chat_create(conn, chat, &chat_id);
+    if (rc != DB_OK)
+        goto rollback;
+
+    rc = db_chat_create_setting(conn, chat_id, setting);
+    if (rc != DB_OK)
+        goto rollback;
+
+    rc = db_chat_create_members(conn, chat_id, members, members_count);
+    if (rc != DB_OK)
+        goto rollback;
+
+    execute_sql(conn, "COMMIT", NULL, 0);
+
+    if (out_chat_id)
+        *out_chat_id = chat_id;
+
+    return DB_OK;
+
+rollback:
+    execute_sql(conn, "ROLLBACK", NULL, 0);
+
+    return DB_ERROR;
+}
+
 chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, size_t offset)
 {
     db_result_set_t* rc = NULL;
@@ -42,8 +170,8 @@ chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, siz
                         "LIMIT 15 OFFSET $2";
 
     /* convert -> char */
-    static char user_uid_str[64];
-    static char offset_str[64];
+    static char user_uid_str[32];
+    static char offset_str[32];
 
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
     snprintf(offset_str, sizeof(offset_str), "%zu", offset);
@@ -141,7 +269,7 @@ chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, co
                         "         user_profiles.username ASC";
 
     /* convert -> char */
-    static char user_uid_str[64];
+    static char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[2] = {user_uid_str, username};
@@ -202,8 +330,8 @@ chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_i
                         "WHERE chat_id = $1 AND user_uid != $2";
 
     /* convert -> char */
-    static char chat_id_str[64];
-    static char user_uid_str[64];
+    static char chat_id_str[32];
+    static char user_uid_str[32];
 
     snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
@@ -258,8 +386,8 @@ bool db_chat_get_member_exists_by_chat_id(PGconn* conn, uint64_t chat_id, uint64
                         ")";
 
     /* convert -> char */
-    static char chat_id_str[64];
-    static char user_uid_str[64];
+    static char chat_id_str[32];
+    static char user_uid_str[32];
 
     snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
@@ -289,7 +417,7 @@ chat_setting_t* db_chat_get_setting_by_chat_id(PGconn* conn, uint64_t chat_id)
     const char* query = "SELECT * FROM chat_settings WHERE chat_id = $1";
 
     /* convert -> char */
-    static char chat_id_str[64];
+    static char chat_id_str[32];
     snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
 
     const char* params[1] = {chat_id_str};
@@ -324,4 +452,17 @@ chat_setting_t* db_chat_get_setting_by_chat_id(PGconn* conn, uint64_t chat_id)
     free_result_set(rc);
 
     return chat_setting;
+}
+
+db_result_t db_chat_upd_cbackground_by_chat_id(PGconn* conn, char* cbackground, uint64_t chat_id)
+{
+    const char* query = "UPDATE chat_settings SET custom_background = $1 WHERE chat_id = $2";
+
+    /* convert -> chat */
+    static char chat_id_str[32];
+    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+
+    const char* params[2] = {cbackground, chat_id_str};
+
+    return execute_sql(conn, query, params, 2);
 }

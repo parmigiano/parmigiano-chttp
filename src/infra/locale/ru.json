@@ -33,5 +33,8 @@
     "error.save-file": "не удалось сохранить файл",
     "profile-updated": "Профиль обновлен.",
     "error.not-member-chat": "вы не состоите в этом чате",
-    "error.something-went-wrong": "упс, что-то пошло не так"
+    "error.something-went-wrong": "упс, что-то пошло не так",
+    "error.s3-cloud": "ошибка при работе с файловым сервисом",
+    "error.forbidden-file-extension": "запрещенное расширение файла",
+    "error.chat-setting-not-found": "настройки чата не были найдены"
 }

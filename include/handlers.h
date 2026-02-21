@@ -30,5 +30,6 @@ void user_update_profile_handler_v2(chttpx_request_t *req, chttpx_response_t *re
 void chat_get_my_history_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 void chat_get_by_username_handler_v2(chttpx_request_t *req, chttpx_response_t *res);
 void chat_get_settings_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 
 #endif

@@ -1,5 +1,6 @@
 #include "handlers.h"
 
+#include "s3.h"
 #include "httpx.h"
 #include "utilities.h"
 #include "redis/redis.h"
@@ -327,7 +328,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
 
     case DB_ERROR:
-        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
 
@@ -457,7 +458,7 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
 
     case DB_ERROR:
-        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
 
@@ -513,12 +514,25 @@ void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
 
     case DB_ERROR:
-        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
 
-    // DELETE AVATAR S3
-    // DELETE FROM SESSION REDIS
+    /* DELETE AVATAR S3 */
+    s3_config_t s3_config = {
+        .endpoint = getenv("S3_ENDPOINT"),
+        .bucket = getenv("S3_BUCKET"),
+        .access_key = getenv("S3_ACCESS_KEY"),
+        .secret_key = getenv("S3_SECRET_KEY"),
+        .region = getenv("S3_REGION"),
+    };
+
+    /* save to s3 storage */
+    if (s3_delete_file(ctx->user->avatar, &s3_config) != 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.s3-cloud", ctx->lang));
+        goto cleanup;
+    }
 
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", cHTTPX_i18n_t("user-deleted", ctx->lang));
 

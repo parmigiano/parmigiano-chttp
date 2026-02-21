@@ -56,6 +56,14 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
         goto cleanup;
     }
 
+    /* Jpeg/Jpg | Png | Gif */
+    if (strcmp(req->content_type, cHTTPX_CTYPE_JPEG) != 0 && strcmp(req->content_type, cHTTPX_CTYPE_PNG) != 0 &&
+        strcmp(req->content_type, cHTTPX_CTYPE_GIF) != 0)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.forbidden-file-extension", ctx->lang));
+        goto cleanup;
+    }
+
     FILE* f = fopen(req->filename, "rb");
     if (!f)
     {
@@ -99,7 +107,7 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
         goto cleanup;
 
     case DB_ERROR:
-        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
 
@@ -250,7 +258,7 @@ void user_update_profile_handler_v2(chttpx_request_t* req, chttpx_response_t* re
         goto cleanup;
 
     case DB_ERROR:
-        *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
 

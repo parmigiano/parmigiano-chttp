@@ -651,6 +651,103 @@
           }
         }
       }
+    },
+    "/chats/{chat_id}/cbackground": {
+      "patch": {
+        "summary": "Uploading a custom background",
+        "description": "Updates the current custom background via a file",
+        "tags": ["Chats"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "description": "Chat id",
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "example": 123
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "description": "Upload a JPEG background"
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "description": "Upload a PNG background"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Background uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "https://s3.example.com/avatar/123.png"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request error or duplicate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "There is no data to process"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Couldn't save the file"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -710,6 +807,27 @@
           "code": {
             "type": "integer",
             "example": 123456
+          }
+        }
+      },
+      "CreateChat": {
+        "type": "object",
+        "required": ["title", "chat_type"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "chat_type": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 255
           }
         }
       },

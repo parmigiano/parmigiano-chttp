@@ -24,4 +24,5 @@ void routes(void)
     cHTTPX_RegisterRoute(&v2, "GET", "/chats", chat_get_my_history_handler_v2);
     cHTTPX_RegisterRoute(&v2, "GET", "/chats/u/{username}", chat_get_by_username_handler_v2);
     cHTTPX_RegisterRoute(&v2, "GET", "/chats/{chat_id}", chat_get_settings_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "PATCH", "/chats/{chat_id}/cbackground", chat_upload_custom_bg_handler_v2);
 }

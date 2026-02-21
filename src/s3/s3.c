@@ -41,6 +41,22 @@ static S3BucketContext make_bucket_ctx(s3_config_t* cfg)
     return ctx;
 }
 
+static const char* url_to_key(const char* url, const char* bucket)
+{
+    if (!url || !bucket)
+        return NULL;
+
+    char pattern[256];
+    snprintf(pattern, sizeof(pattern), "/%s/", bucket);
+
+    const char* p = strstr(url, pattern);
+    if (!p)
+        return NULL;
+
+    p += strlen(pattern);
+    return p;
+}
+
 static char* create_unique_key(const char* filename, const char* key_p)
 {
     if (!filename || !key_p)
@@ -102,10 +118,12 @@ char* s3_upload_file(FILE* f, const char* filename, char* content_type, const ch
     return strdup(url);
 }
 
-int s3_delete_file(const char* key, s3_config_t* cfg)
+int s3_delete_file(const char* url, s3_config_t* cfg)
 {
-    if (!key || !cfg)
+    if (!url || !cfg)
         return 1;
+
+    const char* key = url_to_key(url, cfg->bucket);
 
     if (S3_initialize("parmigianochat/v2", S3_INIT_ALL, cfg->endpoint) != S3StatusOK)
         return 1;
@@ -119,12 +137,4 @@ int s3_delete_file(const char* key, s3_config_t* cfg)
     S3_deinitialize();
 
     return 0;
-}
-
-char* s3_update_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
-{
-    if (s3_delete_file(filename, cfg) != 0)
-        return NULL;
-
-    return s3_upload_file(f, filename, content_type, key, cfg);
 }
