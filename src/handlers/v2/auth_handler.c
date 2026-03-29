@@ -8,6 +8,7 @@
 #include "redis/redis_limits.h"
 #include "redis/redis_session.h"
 #include "redis/redis_verifycode.h"
+#include "redis/redis_email_confirm.h"
 #include "postgres/postgres_users.h"
 
 #include <time.h>
@@ -160,17 +161,11 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* To lower email */
     to_lower(payload.email);
 
-    /* Verify code */
-    /* ----------- */
-    int code;
-
-    if (!redis_verifycode_get(payload.email, &code))
+    if (!redis_is_email_confirmed(payload.email))
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusForbidden, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.confirm-email", ctx->lang));
         goto cleanup;
     }
-    /* ----------- */
-    /* Verify code */
 
     user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)
@@ -270,17 +265,11 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* To lower email */
     to_lower(payload.email);
 
-    /* Verify code */
-    /* ----------- */
-    int code;
-
-    if (!redis_verifycode_get(payload.email, &code))
+    if (!redis_is_email_confirmed(payload.email))
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusForbidden, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.confirm-email", ctx->lang));
         goto cleanup;
     }
-    /* ----------- */
-    /* Verify code */
 
     /* Check user is exists */
     user = db_user_core_get_by_email(http_server->conn, payload.email);
@@ -498,6 +487,9 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.invalid-confirmation-code", ctx->lang));
         goto cleanup;
     }
+
+    /* Mark email has been confirned */
+    redis_mark_email_confirmed(payload.email);
 
     user = db_user_core_get_by_email(http_server->conn, payload.email);
     if (!user)

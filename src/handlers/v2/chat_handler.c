@@ -429,21 +429,21 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
         goto errorjson;
 
-    enqueue_ai_request(payload.message, callback_ai_send_response, res);
-    payload.message = NULL;
+    // enqueue_ai_request(payload.message, callback_ai_send_response, res);
+    // payload.message = NULL;
 
-    // char* bot_ai_response = call_ai_text(payload.message);
-    // if (bot_ai_response == NULL)
-    // {
-    //     logger_error("chat_bot_default_ai_handler_v2 req={%s}: failed to get response by defailt AI BOT", ctx->x_req_id);
+    char* bot_ai_response = call_ai_text(payload.message);
+    if (bot_ai_response == NULL)
+    {
+        logger_error("chat_bot_default_ai_handler_v2 req={%s}: failed to get response by defailt AI BOT", ctx->x_req_id);
 
-    //     *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.service-temporarily-error",
-    //     ctx->lang)); goto cleanup;
-    // }
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.service-temporarily-error", ctx->lang));
+        goto cleanup;
+    }
 
-    // *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", bot_ai_response);
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", bot_ai_response);
 
-    // free(bot_ai_response);
+    free(bot_ai_response);
 
 cleanup:
     /* Free payloads */
