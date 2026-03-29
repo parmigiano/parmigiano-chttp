@@ -10,8 +10,9 @@
 
 chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx_response_t* res)
 {
+    /* Free routes */
     if (strstr(req->path, "auth/login") != NULL || strstr(req->path, "auth/create") != NULL || strstr(req->path, "auth/verify") != NULL ||
-        strstr(req->path, "doc.api/swagger") != NULL)
+        strstr(req->path, "auth/confirm/email") != NULL || strstr(req->path, "doc.api/swagger") != NULL)
     {
         return next;
     }
@@ -24,7 +25,7 @@ chttpx_middleware_result_t authenticate_middleware(chttpx_request_t* req, chttpx
 
     const char* session_id = NULL;
 
-    const char* authenticated_header = cHTTPX_Header(req, "Authorization");
+    const char* authenticated_header = cHTTPX_HeaderGet(req, "Authorization");
     if (authenticated_header && strncasecmp(authenticated_header, "Bearer ", 7) == 0)
     {
         session_id = authenticated_header + 7;

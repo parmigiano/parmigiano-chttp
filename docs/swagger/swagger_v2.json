@@ -12,8 +12,30 @@
   "paths": {
     "/auth/login": {
       "post": {
-        "summary": "Login user and register user OR send verification code",
+        "summary": "Only logging in to your account will require 202 if you have a cloud password",
         "tags": ["Auth"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -26,7 +48,7 @@
         },
         "responses": {
           "200": {
-            "description": "Verification code sent",
+            "description": "Session ID",
             "content": {
               "application/json": {
                 "schema": {
@@ -80,8 +102,30 @@
     },
     "/auth/create": {
       "post": {
-        "summary": "Register user and send verification code",
+        "summary": "Only account registration, the user is created after the email is verified",
         "tags": ["Auth"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -94,7 +138,77 @@
         },
         "responses": {
           "200": {
-            "description": "Verification code sended",
+            "description": "Session ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/confirm/email": {
+      "post": {
+        "summary": "Mail confirmation, sending the code to the mail",
+        "tags": ["Auth"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthConfirmEmail"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The code has been sent by email",
             "content": {
               "application/json": {
                 "schema": {
@@ -130,6 +244,28 @@
       "post": {
         "summary": "Verification code before send request",
         "tags": ["Auth"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -142,7 +278,17 @@
         },
         "responses": {
           "200": {
-            "description": "send session id",
+            "description": "Sending a session ID if the user is logged in and does not have a cloud password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Password required",
             "content": {
               "application/json": {
                 "schema": {
@@ -153,6 +299,16 @@
           },
           "400": {
             "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found - need register",
             "content": {
               "application/json": {
                 "schema": {
@@ -178,6 +334,28 @@
       "delete": {
         "summary": "Delete user account",
         "tags": ["Auth"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -221,6 +399,28 @@
       "get": {
         "summary": "Get user me profile",
         "tags": ["Users"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -272,6 +472,28 @@
       "patch": {
         "summary": "Update user information",
         "tags": ["Users"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -336,6 +558,28 @@
         "summary": "Uploading a user's avatar",
         "description": "Updates the current user's avatar via a file",
         "tags": ["Users"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -427,6 +671,26 @@
         ],
         "parameters": [
           {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
             "name": "user_uid",
             "in": "path",
             "required": true,
@@ -494,6 +758,26 @@
         ],
         "parameters": [
           {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
             "name": "offset",
             "in": "query",
             "description": "Offset for pagination",
@@ -551,6 +835,26 @@
         ],
         "parameters": [
           {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
             "name": "username",
             "in": "path",
             "required": true,
@@ -606,6 +910,26 @@
           }
         ],
         "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
           {
             "name": "chat_id",
             "in": "path",
@@ -664,6 +988,26 @@
         ],
         "parameters": [
           {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
             "name": "chat_id",
             "in": "path",
             "required": true,
@@ -713,35 +1057,218 @@
             }
           },
           "400": {
-            "description": "Request error or duplicate",
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "There is no data to process"
-                    }
-                  },
-                  "required": ["error"]
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "Server error",
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chats/{chat_id}/translate": {
+      "post": {
+        "summary": "Chat translation supported languages (en, ru)",
+        "description": "Chat translation supported languages (en, ru)",
+        "tags": ["Chats"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "description": "Chat id",
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "example": 123
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatTranslate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Text translation",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
+                    "message": {
                       "type": "string",
-                      "example": "Couldn't save the file"
+                      "example": "This is translate with parmigiano chat!"
                     }
                   },
-                  "required": ["error"]
+                  "required": ["message"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chats/bot/ai": {
+      "post": {
+        "summary": "Built-in AI bot for communication in Parmigiano Chat",
+        "description": "Built-in AI bot for communication in Parmigiano Chat",
+        "tags": ["Chats"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatBotAi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI Bot's response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Hello!"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -793,6 +1320,16 @@
           "password": {
             "type": "string",
             "minLength": 8
+          }
+        }
+      },
+      "AuthConfirmEmail": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
           }
         }
       },
@@ -1028,6 +1565,28 @@
         "properties": {
           "error": {
             "type": "string"
+          }
+        }
+      },
+      "ChatTranslate": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 3000
+          }
+        }
+      },
+      "ChatBotAi": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 3000
           }
         }
       }

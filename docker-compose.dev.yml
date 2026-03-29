@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  ollama_phi:
+    image: ollama/ollama
+    container_name: ollama_phi
+    ports:
+      - '11435:11434'
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=10m
+    volumes:
+      - ollama_phi_data:/root/.ollama
+    restart: unless-stopped
+  # db:
+  #   image: postgres
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: parmigiano
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     retries: 5
+  redis:
+    image: redis:8
+    command: redis-server --requirepass redispass
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+  libretranslate:
+    image: libretranslate/libretranslate
+    ports:
+      - "4512:5000"
+    environment:
+      - LT_LOAD_ONLY=en,ru
+    volumes:
+      - lt_data:/app/models
+    restart: unless-stopped
+
+  http_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: ".env.docker"
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      # - db
+      - redis
+      - ollama_phi
+      - libretranslate
+
+volumes:
+  ollama_phi_data:
+  lt_data:

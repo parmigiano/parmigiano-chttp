@@ -1,6 +1,6 @@
 #include "postgres/postgres.h"
 
-#include "log.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ void run_migrations(PGconn* conn)
             continue;
         }
 
-        log_info("Applying migration %s", files[i]);
+        logger_info("Applying migration %s", files[i]);
 
         res = PQexec(conn, "BEGIN");
         PQclear(res);
@@ -106,7 +106,9 @@ void run_migrations(PGconn* conn)
 
         if (PQresultStatus(res) != PGRES_COMMAND_OK)
         {
-            fprintf(stderr, "Migration failed: %s\n", PQerrorMessage(conn));
+            logger_error("run_migrations: migration failed: %s", PQerrorMessage(conn));
+
+            fprintf(stderr, "migration failed: %s\n", PQerrorMessage(conn));
             PQclear(res);
             PQexec(conn, "ROLLBACK");
             exit(1);

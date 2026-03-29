@@ -1,6 +1,8 @@
 #include "postgres/postgres.h"
 #include "postgres/postgres_chats.h"
 
+#include "logger.h"
+
 db_result_t db_chat_create(PGconn* conn, chat_t* chat, uint64_t* out_chat_id)
 {
     const char* query = "INSERT INTO chats (chat_type, title, description) VALUES ($1, $2, $3) RETURNING id";
@@ -34,7 +36,7 @@ db_result_t db_chat_create(PGconn* conn, chat_t* chat, uint64_t* out_chat_id)
 
         if (status == PGRES_FATAL_ERROR)
         {
-            fprintf(stderr, "DB error: %s\n", PQresultErrorMessage(res));
+            logger_error("db_chat_create: failed to exec sql: %s", PQresultErrorMessage(res));
             PQclear(res);
             return DB_ERROR;
         }
@@ -80,7 +82,13 @@ db_result_t db_chat_create_members(PGconn* conn, uint64_t chat_id, chat_member_t
 
     const char* params[3] = {chat_id_str, user_uids, roles};
 
-    return execute_sql(conn, query, params, 3);
+    db_result_t result = execute_sql(conn, query, params, 3);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_create_members chat_id={%lu}: failed to exec sql: %s", chat_id, PQerrorMessage(conn));
+    }
+
+    return result;
 }
 
 db_result_t db_chat_create_setting(PGconn* conn, uint64_t chat_id, chat_setting_t* setting)
@@ -93,7 +101,13 @@ db_result_t db_chat_create_setting(PGconn* conn, uint64_t chat_id, chat_setting_
 
     const char* params[1] = {chat_id_str};
 
-    return execute_sql(conn, query, params, 1);
+    db_result_t result = execute_sql(conn, query, params, 1);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_create_setting chat_id={%lu}: failed to exec sql: %s", chat_id, PQerrorMessage(conn));
+    }
+
+    return result;
 }
 
 db_result_t db_chat_create_all(PGconn* conn, chat_t* chat, chat_member_t* members, size_t members_count, chat_setting_t* setting,
@@ -124,6 +138,8 @@ db_result_t db_chat_create_all(PGconn* conn, chat_t* chat, chat_member_t* member
     return DB_OK;
 
 rollback:
+    logger_error("db_chat_create_all chat_id={%lu}: failed to exec sql: %s", chat_id ? chat_id : 0, PQerrorMessage(conn));
+
     execute_sql(conn, "ROLLBACK", NULL, 0);
 
     return DB_ERROR;
@@ -179,8 +195,14 @@ chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, siz
     const char* params[2] = {user_uid_str, offset_str};
 
     db_result_t result = execute_select(conn, query, params, 2, &rc);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_get_my_history user_uid={%lu}: failed to exec sql: %s", user_uid, PQerrorMessage(conn));
+        free_result_set(rc);
+        return NULL;
+    }
 
-    if (result != DB_OK || !rc || rc->n_rows == 0)
+    if (!rc || rc->n_rows == 0)
     {
         free_result_set(rc);
         return NULL;
@@ -189,6 +211,8 @@ chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, siz
     chat_preview_LIST_t* list = malloc(sizeof(chat_preview_LIST_t));
     if (!list)
     {
+        logger_error("db_chat_get_my_history user_uid={%lu}: malloc failed for chat_preview_LIST_t", user_uid);
+
         fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
@@ -199,7 +223,9 @@ chat_preview_LIST_t* db_chat_get_my_history(PGconn* conn, uint64_t user_uid, siz
     list->items = calloc(list->count, sizeof(chat_preview_t));
     if (!list->items)
     {
-        fprintf(stderr, "calloc failed");
+        logger_error("db_chat_get_my_history user_uid={%lu}: calloc failed for list->items", user_uid);
+
+        fprintf(stderr, "calloc failed\n");
 
         free(list);
         free_result_set(rc);
@@ -275,8 +301,14 @@ chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, co
     const char* params[2] = {user_uid_str, username};
 
     db_result_t result = execute_select(conn, query, params, 2, &rc);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_get_by_username user_uid={%lu}: failed to exec sql: %s", user_uid, PQerrorMessage(conn));
+        free_result_set(rc);
+        return NULL;
+    }
 
-    if (result != DB_OK || !rc || rc->n_rows == 0)
+    if (!rc || rc->n_rows == 0)
     {
         free_result_set(rc);
         return NULL;
@@ -285,6 +317,8 @@ chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, co
     chat_preview_LIST_t* list = malloc(sizeof(chat_preview_LIST_t));
     if (!list)
     {
+        logger_error("db_chat_get_by_username user_uid={%lu}: malloc failed for list", user_uid);
+
         fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
@@ -295,7 +329,9 @@ chat_preview_LIST_t* db_chat_get_by_username(PGconn* conn, uint64_t user_uid, co
     list->items = calloc(list->count, sizeof(chat_preview_t));
     if (!list->items)
     {
-        fprintf(stderr, "calloc failed");
+        logger_error("db_chat_get_by_username user_uid={%lu}: calloc failed for list->items", user_uid);
+
+        fprintf(stderr, "calloc failed\n");
 
         free(list);
         free_result_set(rc);
@@ -339,8 +375,14 @@ chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_i
     const char* params[2] = {chat_id_str, user_uid_str};
 
     db_result_t result = execute_select(conn, query, params, 2, &rc);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_get_members_by_chat_id chat_id={%lu} user_uid={%lu}: failed to exec sql: %s", chat_id, user_uid, PQerrorMessage(conn));
+        free_result_set(rc);
+        return NULL;
+    }
 
-    if (result != DB_OK || !rc || rc->n_rows == 0)
+    if (!rc || rc->n_rows == 0)
     {
         free_result_set(rc);
         return NULL;
@@ -349,6 +391,8 @@ chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_i
     chat_member_LIST_t* list = malloc(sizeof(chat_member_LIST_t));
     if (!list)
     {
+        logger_error("db_chat_get_members_by_chat_id chat_id={%lu} user_uid={%lu}: malloc failed for list", chat_id, user_uid);
+
         fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
@@ -359,7 +403,9 @@ chat_member_LIST_t* db_chat_get_members_by_chat_id(PGconn* conn, uint64_t chat_i
     list->user_uids = calloc(list->count, sizeof(uint64_t));
     if (!list->user_uids)
     {
-        fprintf(stderr, "calloc failed");
+        logger_error("db_chat_get_members_by_chat_id chat_id={%lu} user_uid={%lu}: calloc failed for list->user_uids", chat_id, user_uid);
+
+        fprintf(stderr, "calloc failed\n");
 
         free(list);
         free_result_set(rc);
@@ -395,8 +441,15 @@ bool db_chat_get_member_exists_by_chat_id(PGconn* conn, uint64_t chat_id, uint64
     const char* params[2] = {chat_id_str, user_uid_str};
 
     db_result_t result = execute_select(conn, query, params, 2, &rc);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_get_member_exists_by_chat_id chat_id={%lu} user_uid={%lu}: failed to exec sql: %s", chat_id, user_uid,
+                     PQerrorMessage(conn));
+        free_result_set(rc);
+        return false;
+    }
 
-    if (result != DB_OK || !rc || rc->n_rows == 0)
+    if (!rc || rc->n_rows == 0)
     {
         free_result_set(rc);
         return false;
@@ -423,8 +476,14 @@ chat_setting_t* db_chat_get_setting_by_chat_id(PGconn* conn, uint64_t chat_id)
     const char* params[1] = {chat_id_str};
 
     db_result_t result = execute_select(conn, query, params, 1, &rc);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_get_setting_by_chat_id chat_id={%lu}: failed to exec sql: %s", chat_id, PQerrorMessage(conn));
+        free_result_set(rc);
+        return NULL;
+    }
 
-    if (result != DB_OK || !rc || rc->n_rows == 0)
+    if (!rc || rc->n_rows == 0)
     {
         free_result_set(rc);
         return NULL;
@@ -433,6 +492,8 @@ chat_setting_t* db_chat_get_setting_by_chat_id(PGconn* conn, uint64_t chat_id)
     chat_setting_t* chat_setting = malloc(sizeof(chat_setting_t));
     if (!chat_setting)
     {
+        logger_error("db_chat_get_setting_by_chat_id chat_id={%lu}: malloc failed for chat_setting", chat_id);
+
         fprintf(stderr, "malloc failed\n");
 
         free_result_set(rc);
@@ -464,5 +525,11 @@ db_result_t db_chat_upd_cbackground_by_chat_id(PGconn* conn, char* cbackground, 
 
     const char* params[2] = {cbackground, chat_id_str};
 
-    return execute_sql(conn, query, params, 2);
+    db_result_t result = execute_sql(conn, query, params, 2);
+    if (result != DB_OK)
+    {
+        logger_error("db_chat_upd_cbackground_by_chat_id chat_id={%lu}: failed to exec sql: %s", chat_id, PQerrorMessage(conn));
+    }
+
+    return result;
 }

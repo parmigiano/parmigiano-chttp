@@ -1,10 +1,14 @@
 #include "httpx.h"
 
+#include "logger.h"
 #include "routes.h"
+#include "utilities.h"
 #include "middlewarex.h"
 #include "redis/redis.h"
 #include "postgres/postgres.h"
 
+#include <maxminddb.h>
+#include <curl/curl.h>
 #include <libchttpx/libchttpx.h>
 
 httpx_server_t* http_server = NULL;
@@ -13,9 +17,13 @@ static void _cors();
 
 void http_init(void)
 {
+    /* Initial logger */
+    logger_init();
+
     http_server = (httpx_server_t*)calloc(1, sizeof(httpx_server_t));
     if (!http_server)
     {
+        logger_error("http_init: calloc failed for http_server");
         fprintf(stderr, "calloc failed\n");
         exit(1);
     }
@@ -27,19 +35,21 @@ void http_init(void)
 
     if (cHTTPX_Init(&serv, HTTPX_SERVER_PORT, &max_clients) != 0)
     {
-        printf("Failed to start server\n");
-        return;
+        logger_error("http_init: failed to start server");
+        fprintf(stderr, "failed to start server\n");
+        exit(1);
     }
 
     /* Timeouts */
-    serv.read_timeout_sec = 120;
-    serv.write_timeout_sec = 120;
+    serv.read_timeout_sec = 60;
+    serv.write_timeout_sec = 60;
     serv.idle_timeout_sec = 90;
 
     /* Initial redis connect */
     if (!redis_conn())
     {
-        fprintf(stderr, "Redis error\n");
+        logger_error("http_init: failed to start redis error");
+        fprintf(stderr, "redis error\n");
         exit(1);
     }
 
@@ -47,12 +57,25 @@ void http_init(void)
     PGconn* conn = db_conn();
     if (!conn)
     {
-        fprintf(stderr, "Failed to connect to database\n");
+        logger_error("http_init: failed to connect to database");
+        fprintf(stderr, "failed to connect to database\n");
         exit(1);
     }
     http_server->conn = conn;
 
     run_migrations(conn);
+
+    /* Load in memory GeoIP */
+    int status = MMDB_open("/usr/local/share/GeoIP/GeoLite2-Country.mmdb", MMDB_MODE_MMAP, &http_server->geoip);
+    if (status != MMDB_SUCCESS)
+    {
+        logger_error("http_init: failed load GeoIP in memory: %s", MMDB_strerror(status));
+        fprintf(stderr, "failed load GeoIP in memory: %s\n", MMDB_strerror(status));
+        exit(1);
+    }
+
+    /* Initial AI queue */
+    start_ai_worker();
 
     /* Cors */
     _cors();
@@ -62,8 +85,11 @@ void http_init(void)
     cHTTPX_MiddlewareLogging();
     cHTTPX_MiddlewareRateLimiter(5, 1);
     cHTTPX_MiddlewareUse(language_middleware);
+    cHTTPX_MiddlewareUse(x_request_id_middleware);
+    cHTTPX_MiddlewareUse(geoip_block_middleware);
+    cHTTPX_MiddlewareUse(pow_ddos_middleware);
     cHTTPX_MiddlewareUse(authenticate_middleware);
-    cHTTPX_MiddlewareUse(email_confirmed_middleware);
+    // cHTTPX_MiddlewareUse(email_confirmed_middleware);
 
     /* Initial routes */
     routes();
@@ -73,6 +99,12 @@ void http_init(void)
 
     /* Shutdown server */
     cHTTPX_Shutdown();
+
+    /* Free mmdb GeoIP */
+    MMDB_close(&http_server->geoip);
+
+    /* Free CURL */
+    curl_global_cleanup();
 
     free(http_server);
 }
@@ -107,5 +139,6 @@ static void _cors()
     }
 
     cHTTPX_Cors(allowed_origins, origins_count, NULL,
-                "Content-Type, Authorization, Accept-Language, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto, Upgrade, Connection, Host");
+                "Content-Type, Authorization, Accept-Language, X-Debug, Pow-Challenge, Pow-Nonce, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto, "
+                "Upgrade, Connection, Host");
 }

@@ -1,5 +1,7 @@
 #include "postgres/postgres.h"
 
+#include "logger.h"
+
 db_result_t execute_sql(PGconn* conn, const char* query, const char** params, int n_params)
 {
     if (!conn || !query)
@@ -27,7 +29,7 @@ db_result_t execute_sql(PGconn* conn, const char* query, const char** params, in
         {
             const char* err = PQresultErrorMessage(result);
 
-            fprintf(stderr, "Database error: %s\n", err);
+            logger_error("execute_sql: database error: %s", err);
             PQclear(result);
 
             return DB_ERROR;

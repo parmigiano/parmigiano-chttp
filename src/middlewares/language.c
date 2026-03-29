@@ -1,5 +1,6 @@
 #include "middlewarex.h"
 
+#include "logger.h"
 #include "handlers.h"
 #include "postgres/postgres_users.h"
 
@@ -16,6 +17,9 @@ void auth_context_free(void* ptr)
         ctx->user = NULL;
     }
 
+    if (ctx->x_req_id)
+        free(ctx->x_req_id);
+
     if (ctx->lang)
         free(ctx->lang);
 
@@ -24,7 +28,7 @@ void auth_context_free(void* ptr)
 
 chttpx_middleware_result_t language_middleware(chttpx_request_t* req, chttpx_response_t* res)
 {
-    const char* hal = cHTTPX_Header(req, "Accept-Language");
+    const char* hal = cHTTPX_HeaderGet(req, "Accept-Language");
     char lang_code[3];
 
     if (!hal)
@@ -46,6 +50,8 @@ chttpx_middleware_result_t language_middleware(chttpx_request_t* req, chttpx_res
         ctx = calloc(1, sizeof(auth_token_t));
         if (!ctx)
         {
+            logger_error("language_middleware: calloc failed for ctx");
+
             fprintf(stderr, "calloc failed\n");
 
             *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.context-initialization", lang_code));

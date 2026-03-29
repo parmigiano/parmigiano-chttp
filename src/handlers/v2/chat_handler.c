@@ -3,9 +3,21 @@
 
 #include "s3.h"
 #include "httpx.h"
+#include "logger.h"
+#include "utilities.h"
 
 #include <string.h>
 #include <libchttpx/libchttpx.h>
+
+typedef struct
+{
+    char* text;
+} chat_translate_t;
+
+typedef struct
+{
+    char* message;
+} chat_bot_ai_t;
 
 void chat_get_my_history_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
@@ -244,6 +256,7 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
 
     if (req->filename[0] == '\0')
     {
+        logger_error("chat_upload_custom_bg_handler_v2 req={%s}: empty media file", ctx->x_req_id);
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.no-data-to-process", ctx->lang));
         goto cleanup;
     }
@@ -251,6 +264,8 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
     /* Jpeg/Jpg | Png */
     if (strcmp(req->content_type, cHTTPX_CTYPE_JPEG) != 0 && strcmp(req->content_type, cHTTPX_CTYPE_PNG) != 0)
     {
+        logger_error("chat_upload_custom_bg_handler_v2 req={%s}: failed to load media forbidden file extension (%s)", ctx->x_req_id,
+                     req->content_type);
         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.forbidden-file-extension", ctx->lang));
         goto cleanup;
     }
@@ -265,6 +280,7 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
     FILE* f = fopen(req->filename, "rb");
     if (!f)
     {
+        logger_error("chat_upload_custom_bg_handler_v2 req={%s}: failed open temporary file", ctx->x_req_id);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.open-temporary-file", ctx->lang));
         goto cleanup;
     }
@@ -285,6 +301,7 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
 
     if (!url || *url == '\0')
     {
+        logger_error("chat_upload_custom_bg_handler_v2 req={%s}: failed save file to S3 cloud", ctx->x_req_id);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.save-file", ctx->lang));
         goto cleanup;
     }
@@ -292,6 +309,7 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
     /* Delete old custom bg in S3 */
     if (s3_delete_file(chat_setting->custom_background ? chat_setting->custom_background : "", &s3_config) != 0)
     {
+        logger_error("chat_upload_custom_bg_handler_v2 req={%s}: failed to delete file in S3 cloud", ctx->x_req_id);
         *res = cHTTPX_ResJson(cHTTPX_StatusConflict, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.s3-cloud", ctx->lang));
         goto cleanup;
     }
@@ -334,101 +352,107 @@ cleanup:
     return;
 }
 
-typedef struct
+void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 {
-    char* title;
-    char* description;
-    char* chat_type;
-} chat_group_create_t;
+    /* Context in request */
+    auth_token_t* ctx = (auth_token_t*)req->context;
 
-// void chat_create_group_or_channel_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
-// {
-//     auth_token_t* ctx = (auth_token_t*)req->context;
+    chat_translate_t payload = {0};
 
-//     chat_group_create_t payload = {0};
+    chttpx_validation_t fields[] = {
+        chttpx_validation_string("text", &payload.text, true, 0, 3000, VALIDATOR_NONE),
+    };
 
-//     chttpx_validation_t fields[] = {
-//         chttpx_validation_string("title", &payload.title, true, 1, 30, VALIDATOR_NONE),
-//         chttpx_validation_string("description", &payload.description, false, 1, 255, VALIDATOR_NONE),
-//         chttpx_validation_string("chat_type", &payload.chat_type, true, 4, 255, VALIDATOR_NONE),
-//     };
+    if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
+        goto errorjson;
 
-//     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
-//         goto errorjson;
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
 
-//     if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
-//         goto errorjson;
+    /* Detect language text */
+    char* lang = detect_lang(payload.text);
+    if (!lang)
+        lang = strdup("en");
 
-//     /* calloc chat */
-//     chat_t* chat = calloc(1, sizeof(chat_t));
-//     if (!chat)
-//     {
-//         fprintf(stderr, "calloc failed\n");
-//         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    char* translated = NULL;
 
-//         goto cleanup;
-//     }
-//     chat->title = strdup(payload.title);
-//     chat->chat_type = strdup(payload.chat_type);
-//     if (payload.description)
-//         chat->description = strdup(payload.description);
+    /* Translate text with lang */
+    if (strcmp(lang, "ru") == 0)
+    {
+        translated = translate(payload.text, "ru", "en");
+    }
+    else if (strcmp(lang, "en") == 0)
+    {
+        translated = translate(payload.text, "en", "ru");
+    }
+    else
+    {
+        translated = strdup(payload.text);
+    }
 
-//     /* calloc chat setting */
-//     chat_setting_t* chat_setting = calloc(1, sizeof(chat_setting_t));
-//     if (!chat_setting)
-//     {
-//         fprintf(stderr, "calloc failed\n");
-//         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    if (translated == NULL)
+        translated = strdup(payload.text);
 
-//         goto cleanup;
-//     }
+    free(lang);
 
-//     /* initial chat members */
-//     chat_member_t members[] = {
-//         {.user_uid = ctx->user->user_uid, .role = "owner"},
-//     };
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", get_translated_text(translated));
 
-//     uint64_t chat_id = 0;
-//     db_result_t chat_db_result = db_chat_create_all(http_server->conn, chat, members, (sizeof(members) / sizeof(members[0])), chat_setting, &chat_id);
+    if (translated)
+        free(translated);
 
-//     /* free memory */
-//     free(chat->title);
-//     free(chat->chat_type);
-//     free(chat->description);
-//     free(chat);
-//     chat = NULL;
+cleanup:
+    /* Free payloads */
+    free(payload.text);
 
-//     free(chat_setting);
-//     chat_setting = NULL;
+    return;
 
-//     switch (chat_db_result)
-//     {
-//     case DB_TIMEOUT:
-//         *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
-//         goto cleanup;
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
 
-//     case DB_DUPLICATE:
-//         *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
-//         goto cleanup;
+    goto cleanup;
+}
 
-//     case DB_ERROR:
-//         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
-//         goto cleanup;
-//     }
+void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
+{
+    /* Context in request */
+    auth_token_t* ctx = (auth_token_t*)req->context;
 
-//     *res = cHTTPX_ResJson(cHTTPX_StatusCreated, "{\"message\": {\"chat_id\": %ld}}", chat_id);
+    chat_bot_ai_t payload = {0};
 
-// cleanup:
-//     free(payload.title);
-//     free(payload.chat_type);
+    chttpx_validation_t fields[] = {
+        chttpx_validation_string("message", &payload.message, true, 0, 3000, VALIDATOR_NONE),
+    };
 
-//     if (payload.description)
-//         free(payload.description);
+    if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
+        goto errorjson;
 
-//     return;
+    if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
+        goto errorjson;
 
-// errorjson:
-//     *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+    enqueue_ai_request(payload.message, callback_ai_send_response, res);
+    payload.message = NULL;
 
-//     goto cleanup;
-// }
+    // char* bot_ai_response = call_ai_text(payload.message);
+    // if (bot_ai_response == NULL)
+    // {
+    //     logger_error("chat_bot_default_ai_handler_v2 req={%s}: failed to get response by defailt AI BOT", ctx->x_req_id);
+
+    //     *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.service-temporarily-error",
+    //     ctx->lang)); goto cleanup;
+    // }
+
+    // *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", bot_ai_response);
+
+    // free(bot_ai_response);
+
+cleanup:
+    /* Free payloads */
+    free(payload.message);
+
+    return;
+
+errorjson:
+    *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", req->error_msg);
+
+    goto cleanup;
+}

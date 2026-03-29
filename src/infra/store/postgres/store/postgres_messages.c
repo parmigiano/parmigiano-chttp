@@ -1,6 +1,8 @@
 #include "postgres/postgres.h"
 #include "postgres/postgres_messages.h"
 
+#include "logger.h"
+
 db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_message_id)
 {
     const char* query = "INSERT INTO messages (chat_id, sender_uid, content, content_type) VALUES ($1, $2, $3, $4) RETURNING id;";
@@ -41,7 +43,8 @@ db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_messag
 
         if (status == PGRES_FATAL_ERROR)
         {
-            fprintf(stderr, "DB error: %s\n", PQresultErrorMessage(res));
+            logger_error("db_message_create chat_id={%lu} sender_uid={%lu}: failed to exec sql: %s", msg->chat_id ? msg->chat_id : 0,
+                         msg->sender_uid ? msg->sender_uid : 0, PQresultErrorMessage(res));
             PQclear(res);
             return DB_ERROR;
         }
@@ -65,7 +68,14 @@ db_result_t db_message_create_status(PGconn* conn, uint64_t message_id, message_
 
     const char* params[2] = {message_id_str, receiver_uid_str};
 
-    return execute_sql(conn, query, params, 2);
+    db_result_t result = execute_sql(conn, query, params, 2);
+    if (result != DB_OK)
+    {
+        logger_error("db_message_create_status message_id={%lu} receiver_uid={%lu}: failed to exec sql: %s", message_id,
+                     msg_status->receiver_uid ? msg_status->receiver_uid : 0, PQerrorMessage(conn));
+    }
+
+    return result;
 }
 
 db_result_t db_message_create_all(PGconn* conn, message_t* msg, message_status_t* msg_status)
@@ -88,6 +98,8 @@ db_result_t db_message_create_all(PGconn* conn, message_t* msg, message_status_t
     return DB_OK;
 
 rollback:
+    logger_error("db_message_create_all message_id={%lu}: failed to exec sql: %s", message_id ? message_id : 0, PQerrorMessage(conn));
+
     execute_sql(conn, "ROLLBACK", NULL, 0);
 
     return DB_ERROR;

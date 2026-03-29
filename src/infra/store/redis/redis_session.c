@@ -1,4 +1,5 @@
 #include "redis/redis.h"
+
 #include "encryption.h"
 #include "redis/redis_session.h"
 

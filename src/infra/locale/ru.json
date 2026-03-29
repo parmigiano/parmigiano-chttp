@@ -36,5 +36,9 @@
     "error.something-went-wrong": "упс, что-то пошло не так",
     "error.s3-cloud": "ошибка при работе с файловым сервисом",
     "error.forbidden-file-extension": "запрещенное расширение файла",
-    "error.chat-setting-not-found": "настройки чата не были найдены"
+    "error.chat-setting-not-found": "настройки чата не были найдены",
+    "error.incorrect-login-data": "неверные данные для входа",
+    "error.location-allowed": "в вашем регионе доступ к данному сервису ограничен",
+    "error.service-temporarily-error": "сервис временно недоступен. пожалуйста, попробуйте позже",
+    "error.email-limit-24-hourse": "слишком много попыток, попробуйте через 24 часа"
 }

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS chat_groups (
     created_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('UTC', now())),
     user_uid BIGINT NOT NULL,
-    name VARCHAR(100) NOT NULL
+    name VARCHAR(20) NOT NULL
 );
 
 CREATE OR REPLACE FUNCTION set_updated_at_chat_groups()

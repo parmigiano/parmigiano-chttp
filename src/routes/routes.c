@@ -12,6 +12,7 @@ void routes(void)
     /* Auth routes */
     cHTTPX_RegisterRoute(&v2, "POST", "/auth/login", auth_login_handler_v2);
     cHTTPX_RegisterRoute(&v2, "POST", "/auth/create", auth_create_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "POST", "/auth/confirm/email", auth_confirm_email_handler_v2);
     cHTTPX_RegisterRoute(&v2, "POST", "/auth/verify", auth_verify_handler_v2);
     cHTTPX_RegisterRoute(&v2, "DELETE", "/auth/delete", auth_delete_handler_v2);
     /* User routes */
@@ -25,4 +26,6 @@ void routes(void)
     cHTTPX_RegisterRoute(&v2, "GET", "/chats/u/{username}", chat_get_by_username_handler_v2);
     cHTTPX_RegisterRoute(&v2, "GET", "/chats/{chat_id}", chat_get_settings_handler_v2);
     cHTTPX_RegisterRoute(&v2, "PATCH", "/chats/{chat_id}/cbackground", chat_upload_custom_bg_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "POST", "/chats/{chat_id}/translate", chat_translate_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "POST", "/chats/bot/ai", chat_bot_default_ai_handler_v2);
 }

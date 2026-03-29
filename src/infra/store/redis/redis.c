@@ -1,5 +1,5 @@
 #include "redis/redis.h"
-#include "log.h"
+#include "logger.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +45,6 @@ int redis_conn(void)
         freeReplyObject(r);
     }
 
-    log_info("Successfully connected to the redis!\n");
+    logger_info("Successfully connected to the redis!");
     return 1;
 }

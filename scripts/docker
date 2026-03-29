@@ -1,0 +1,9 @@
+#!/bin/bash
+
+sudo apt install docker.io docker-compose
+
+sudo usermod -aG docker $USER
+
+docker exec -it ollama_phi ollama pull phi3
+
+docker exec -it ollama_phi ollama run phi3

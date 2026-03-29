@@ -36,5 +36,9 @@
     "error.something-went-wrong": "oops, something went wrong",
     "error.s3-cloud": "error when working with the file service",
     "error.forbidden-file-extension": "forbidden file extension",
-    "error.chat-setting-not-found": "chat settings were not found"
+    "error.chat-setting-not-found": "chat settings were not found",
+    "error.incorrect-login-data": "incorrect login information",
+    "error.location-allowed": "access to this service is limited in your region",
+    "error.service-temporarily-error": "the service is temporarily unavailable. please try again later",
+    "error.email-limit-24-hourse": "too many attempts, try again in 24 hours"
 }

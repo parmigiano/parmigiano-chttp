@@ -1,6 +1,6 @@
 #include "postgres/postgres.h"
 
-#include "log.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,12 +15,12 @@ PGconn* db_conn(void)
 
     if (PQstatus(conn) != CONNECTION_OK)
     {
-        fprintf(stderr, "DB error: %s\n", PQerrorMessage(conn));
+        logger_error("db_conn: database error: %s", PQerrorMessage(conn));
         PQfinish(conn);
         exit(1);
     }
 
-    log_info("Successfully connected to the database!\n");
+    logger_info("Successfully connected to the database!");
 
     return conn;
 }

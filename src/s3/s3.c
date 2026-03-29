@@ -1,5 +1,7 @@
 #include "s3.h"
 
+#include "logger.h"
+
 #include <libs3.h>
 #include <string.h>
 #include <uuid/uuid.h>
@@ -21,7 +23,7 @@ static void response_complete_cb(S3Status status, const S3ErrorDetails* error, v
 
     if (status != S3StatusOK)
     {
-        fprintf(stderr, "S3 error: %s\n", error && error->message ? error->message : "unknown");
+        logger_error("response_complete_cb: s3 error: %s", error && error->message ? error->message : "unknown");
     }
 }
 

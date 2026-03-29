@@ -1,6 +1,6 @@
 #include "utilities.h"
 
-#include "log.h"
+#include "logger.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -57,7 +57,7 @@ int send_email(const char* to, const char* subject, const char* body, const char
 
     if (!smtp_server || !smtp_email || !smtp_pass || !smtp_port || !smtp_domain)
     {
-        fprintf(stderr, "SMTP environment variables not set\n");
+        logger_error("send_email to={%s}: SMTP environment variables not set", to);
         return 1;
     }
 
@@ -109,11 +109,11 @@ int send_email(const char* to, const char* subject, const char* body, const char
         res = curl_easy_perform(curl);
         if (res != CURLE_OK)
         {
-            fprintf(stderr, "Email send error: %s\n", curl_easy_strerror(res));
+            logger_error("send_email to={%s}: email send error: %s", to, curl_easy_strerror(res));
         }
         else
         {
-            log_info("Email sent: %s\n", to);
+            logger_info("email sent: %s", to);
         }
 
         curl_slist_free_all(recipients);

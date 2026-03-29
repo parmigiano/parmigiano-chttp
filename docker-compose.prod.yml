@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  ollama_phi:
+    image: ollama/ollama
+    container_name: ollama_phi
+    ports:
+      - '11435:11434'
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=10m
+    volumes:
+      - ollama_phi_data:/root/.ollama
+    restart: unless-stopped
+  libretranslate:
+    image: libretranslate/libretranslate
+    ports:
+      - "4512:5000"
+    environment:
+      - LT_LOAD_ONLY=en,ru
+    volumes:
+      - lt_data:/app/models
+    restart: unless-stopped
+
+  http_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.production
+    volumes:
+      - ./logs:/app/logs
+    restart: always
+    depends_on:
+      - ollama_phi
+      - libretranslate
+
+volumes:
+  ollama_phi_data:
+  lt_data:
