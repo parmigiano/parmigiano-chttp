@@ -123,7 +123,7 @@ char* detect_lang(const char* text)
     return lang;
 }
 
-char* get_translated_text_cjson(const char* json)
+char* get_translated_text(const char* json)
 {
     cJSON* root = cJSON_Parse(json);
     if (!root) return strdup("");
