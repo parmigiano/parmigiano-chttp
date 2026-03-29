@@ -7,6 +7,8 @@
 #include <string.h>
 #include <curl/curl.h>
 
+#include <cjson/cJSON.h>
+
 char* translate(const char* text, const char* source, const char* target)
 {
     CURL* curl;
@@ -121,25 +123,19 @@ char* detect_lang(const char* text)
     return lang;
 }
 
-char* get_translated_text(const char* json)
+char* get_translated_text_cjson(const char* json)
 {
-    const char* key = "\"translatedText\":\"";
+    cJSON* root = cJSON_Parse(json);
+    if (!root) return strdup("");
 
-    char* start = strstr(json, key);
-    if (!start)
+    cJSON* item = cJSON_GetObjectItem(root, "translatedText");
+    if (!cJSON_IsString(item))
+    {
+        cJSON_Delete(root);
         return strdup("");
+    }
 
-    start += strlen(key);
-
-    char* end = strchr(start, '"');
-    if (!end)
-        return strdup("");
-
-    size_t len = end - start;
-
-    char* result = malloc(len + 1);
-    strncpy(result, start, len);
-    result[len] = '\0';
-
+    char* result = strdup(item->valuestring);
+    cJSON_Delete(root);
     return result;
 }

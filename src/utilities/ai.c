@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <curl/curl.h>
 
+#include <cjson/cJSON.h>
+
 #include <libchttpx/libchttpx.h>
 
 typedef struct Request
@@ -114,6 +116,24 @@ void callback_ai_send_response(const char* result, void* arg)
 {
     chttpx_response_t* res = (chttpx_response_t*)arg;
     *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", result);
+}
+
+char* get_ollama_response(const char* json_str)
+{
+    cJSON* root = cJSON_Parse(json_str);
+    if (!root) return NULL;
+
+    cJSON* response = cJSON_GetObjectItem(root, "response");
+    if (!cJSON_IsString(response))
+    {
+        cJSON_Delete(root);
+        return NULL;
+    }
+
+    char* result = strdup(response->valuestring);
+
+    cJSON_Delete(root);
+    return result;
 }
 
 char* call_ai_text(const char* prompt)

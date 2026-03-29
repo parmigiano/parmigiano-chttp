@@ -46,6 +46,8 @@ char* get_translated_text(const char* json);
 void start_ai_worker();
 void enqueue_ai_request(const char* text, void (*callback)(const char* result, void* arg), void* arg);
 void callback_ai_send_response(const char* result, void* arg);
+
+char* get_ollama_response(const char* json);
 char* call_ai_text(const char* prompt);
 
 #endif

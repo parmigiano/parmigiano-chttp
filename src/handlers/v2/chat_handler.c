@@ -441,7 +441,9 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", bot_ai_response);
+    fprintf(stderr, "RAW: %s\n", get_ollama_response(bot_ai_response));
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", get_ollama_response(bot_ai_response));
 
     free(bot_ai_response);
 
