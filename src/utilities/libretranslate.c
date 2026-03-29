@@ -126,7 +126,8 @@ char* detect_lang(const char* text)
 char* get_translated_text(const char* json)
 {
     cJSON* root = cJSON_Parse(json);
-    if (!root) return strdup("");
+    if (!root)
+        return strdup("");
 
     cJSON* item = cJSON_GetObjectItem(root, "translatedText");
     if (!cJSON_IsString(item))

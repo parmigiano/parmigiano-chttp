@@ -121,7 +121,8 @@ void callback_ai_send_response(const char* result, void* arg)
 char* get_ollama_response(const char* json_str)
 {
     cJSON* root = cJSON_Parse(json_str);
-    if (!root) return NULL;
+    if (!root)
+        return NULL;
 
     cJSON* response = cJSON_GetObjectItem(root, "response");
     if (!cJSON_IsString(response))
