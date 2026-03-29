@@ -488,7 +488,7 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    /* Mark email has been confirned */
+    /* Mark email has been confirmed */
     redis_mark_email_confirmed(payload.email);
 
     user = db_user_core_get_by_email(http_server->conn, payload.email);

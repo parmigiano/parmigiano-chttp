@@ -141,7 +141,7 @@ char* call_ai_text(const char* prompt)
     char json[1024];
     snprintf(json, sizeof(json),
              "{"
-             "\"model\": \"phi-3\","
+             "\"model\": \"phi3:latest\","
              "\"messages\": [{\"role\": \"user\", \"content\": \"%s\"}]"
              "}",
              escape_json_string(prompt));
