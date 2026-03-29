@@ -162,7 +162,8 @@ char* call_ai_text(const char* prompt)
     snprintf(json, sizeof(json),
              "{"
              "\"model\": \"phi3:latest\","
-             "\"messages\": [{\"role\": \"user\", \"content\": \"%s\"}]"
+             "\"prompt\": \"%s\","
+             "\"stream\": false"
              "}",
              escape_json_string(prompt));
 
