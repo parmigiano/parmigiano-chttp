@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <curl/curl.h>
 
 struct upload_status
@@ -42,6 +43,54 @@ static void rfc2822_date(char* buffer, size_t size)
 static void generate_message_id(char* buffer, size_t size, const char* domain)
 {
     snprintf(buffer, size, "<%ld.%ld@%s>", time(NULL), random(), domain);
+}
+
+typedef struct
+{
+    char* to;
+    char* subject;
+    char* body;
+    char* cc;
+} email_task_t;
+
+static void* email_thread(void* arg)
+{
+    email_task_t* task = (email_task_t*)arg;
+
+    send_email(task->to, task->subject, task->body, task->cc);
+
+    free(task->to);
+    free(task->subject);
+    free(task->body);
+    if (task->cc)
+        free(task->cc);
+    free(task);
+
+    return NULL;
+}
+
+int send_email_async(const char* to, const char* subject, const char* body, const char* cc)
+{
+    pthread_t thread;
+
+    email_task_t* task = malloc(sizeof(email_task_t));
+    if (!task)
+        return 1;
+
+    task->to = strdup(to);
+    task->subject = strdup(subject);
+    task->body = strdup(body);
+    task->cc = cc ? strdup(cc) : NULL;
+
+    if (pthread_create(&thread, NULL, email_thread, task) != 0)
+    {
+        free(task);
+        return 1;
+    }
+
+    pthread_detach(thread);
+
+    return 0;
 }
 
 int send_email(const char* to, const char* subject, const char* body, const char* cc)

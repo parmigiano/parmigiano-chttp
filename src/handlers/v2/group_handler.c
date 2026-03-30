@@ -1,5 +1,12 @@
 #include "handlers.h"
 
+#include "httpx.h"
+#include "postgres/postgres_groups.h"
+
+#include <cjson/cJSON.h>
+
+#define MAX_COUNT_CHAT_IDs 65
+
 typedef struct
 {
     char* name;
@@ -23,6 +30,80 @@ void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res
 
     if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
         goto errorjson;
+
+    if (payload.chat_ids.count > MAX_COUNT_CHAT_IDs)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.limit-chat-group", ctx->lang));
+        goto cleanup;
+    }
+
+    /* GroupID returned before created group */
+    uint64_t group_id = 0;
+
+    chat_group_t group = {.user_uid = ctx->user->user_uid, .name = payload.name};
+
+    PGconn* conn = http_server->conn;
+
+    /* Begin transation db */
+    if (PQexec(conn, "BEGIN") == NULL)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
+
+    db_result_t r = db_group_chat_create(conn, &group, &group_id);
+    if (r != DB_OK || group_id == 0)
+        goto rollback;
+
+    r = db_group_chat_add_chats(http_server->conn, ctx->user->user_uid, group_id, payload.chat_ids.items, payload.chat_ids.count);
+    if (r != DB_OK)
+        goto rollback;
+
+    if (PQexec(conn, "COMMIT") == NULL)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
+
+    /* Build JSON response */
+    char chat_ids_json[2048];
+    size_t offset = 0;
+
+    offset += snprintf(chat_ids_json + offset, sizeof(chat_ids_json) - offset, "[");
+
+    for (size_t i = 0; i < payload.chat_ids.count; i++)
+    {
+        offset += snprintf(chat_ids_json + offset, sizeof(chat_ids_json) - offset, "%s%d", (i == 0 ? "" : ","), payload.chat_ids.items[i]);
+    }
+
+    snprintf(chat_ids_json + offset, sizeof(chat_ids_json) - offset, "]");
+
+    /* Safe name string */
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "name", payload.name);
+    char* name_json = cJSON_PrintUnformatted(root);
+
+    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"id\": \"%ld\", \"name\": \"%s\", \"chat_ids\": %s}", group_id, name_json, chat_ids_json);
+
+    goto cleanup;
+
+rollback:
+    PQexec(conn, "ROLLBACK");
+
+    switch (r)
+    {
+    case DB_TIMEOUT:
+        *res = cHTTPX_ResJson(cHTTPX_StatusConnectionTimedOut, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.database-connection-timeout", ctx->lang));
+        goto cleanup;
+
+    case DB_DUPLICATE:
+        *res = cHTTPX_ResJson(cHTTPX_StatusBadRequest, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.repeating-data-request", ctx->lang));
+        goto cleanup;
+
+    case DB_ERROR:
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
+        goto cleanup;
+    }
 
 cleanup:
     free(payload.name);

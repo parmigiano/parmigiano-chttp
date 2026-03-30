@@ -35,6 +35,7 @@ int env_init(const char* filename);
 bool is_simple_password(const char *password);
 
 /* email.c */
+int send_email_async(const char* to, const char* subject, const char* body, const char* cc);
 int send_email(const char* to, const char* subject, const char* body, const char* cc);
 
 /* libretranslate.c */

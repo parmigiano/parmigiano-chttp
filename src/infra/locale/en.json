@@ -40,5 +40,6 @@
     "error.incorrect-login-data": "incorrect login information",
     "error.location-allowed": "access to this service is limited in your region",
     "error.service-temporarily-error": "the service is temporarily unavailable. please try again later",
-    "error.email-limit-24-hourse": "too many attempts, try again in 24 hours"
+    "error.email-limit-24-hourse": "too many attempts, try again in 24 hours",
+    "error.limit-chat-group": "the maximum number of chats in a group is 65"
 }

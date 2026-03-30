@@ -5,15 +5,17 @@
 
 db_result_t db_user_core_create(PGconn* conn, user_core_t* user)
 {
-    const char* query = "INSERT INTO user_cores (user_uid, email, password) VALUES ($1, $2, $3)";
+    const char* query = "INSERT INTO user_cores (user_uid, email, password, email_confirm) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
     static char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
-    const char* params[3] = {user_uid_str, user->email, user->password};
+    const char* email_confirm_str = user->email_confirm ? "true" : "false";
 
-    db_result_t result = execute_sql(conn, query, params, 3);
+    const char* params[4] = {user_uid_str, user->email, user->password, email_confirm_str};
+
+    db_result_t result = execute_sql(conn, query, params, 4);
     if (result != DB_OK)
     {
         logger_error("db_user_core_create user_uid={%lu}: failed to exec sql: %s", user->user_uid ? user->user_uid : 0, PQerrorMessage(conn));

@@ -166,7 +166,7 @@ char* call_ai_text(const char* prompt)
              "\"prompt\": \"%s\","
              "\"stream\": false"
              "}",
-             escape_json_string(prompt));
+             prompt);
 
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");

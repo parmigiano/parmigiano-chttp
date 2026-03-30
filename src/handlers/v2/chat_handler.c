@@ -7,6 +7,7 @@
 #include "utilities.h"
 
 #include <string.h>
+#include <cjson/cJSON.h>
 #include <libchttpx/libchttpx.h>
 
 typedef struct
@@ -369,8 +370,13 @@ void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
         goto errorjson;
 
+    /* Safe message string */
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "text", payload.text);
+    char* text_json = cJSON_PrintUnformatted(root);
+
     /* Detect language text */
-    char* lang = detect_lang(payload.text);
+    char* lang = detect_lang(text_json);
     if (!lang)
         lang = strdup("en");
 
@@ -379,19 +385,19 @@ void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* Translate text with lang */
     if (strcmp(lang, "ru") == 0)
     {
-        translated = translate(payload.text, "ru", "en");
+        translated = translate(text_json, "ru", "en");
     }
     else if (strcmp(lang, "en") == 0)
     {
-        translated = translate(payload.text, "en", "ru");
+        translated = translate(text_json, "en", "ru");
     }
     else
     {
-        translated = strdup(payload.text);
+        translated = strdup(text_json);
     }
 
     if (translated == NULL)
-        translated = strdup(payload.text);
+        translated = strdup(text_json);
 
     free(lang);
 
@@ -429,10 +435,12 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     if (!cHTTPX_Validate(req, fields, (sizeof(fields) / sizeof(fields[0])), ctx->lang))
         goto errorjson;
 
-    // enqueue_ai_request(payload.message, callback_ai_send_response, res);
-    // payload.message = NULL;
+    /* Safe message string */
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "message", payload.message);
+    char* message_json = cJSON_PrintUnformatted(root);
 
-    char* bot_ai_response = call_ai_text(payload.message);
+    char* bot_ai_response = call_ai_text(message_json);
     if (bot_ai_response == NULL)
     {
         logger_error("chat_bot_default_ai_handler_v2 req={%s}: failed to get response by defailt AI BOT", ctx->x_req_id);

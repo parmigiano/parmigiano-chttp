@@ -555,8 +555,8 @@
     },
     "/users/me/avatar": {
       "patch": {
-        "summary": "Uploading a user's avatar",
-        "description": "Updates the current user's avatar via a file",
+        "summary": "Uploading a users avatar",
+        "description": "Updates the current users avatar via a file",
         "tags": ["Users"],
         "parameters": [
           {
@@ -1227,7 +1227,7 @@
         },
         "responses": {
           "200": {
-            "description": "AI Bot's response",
+            "description": "AI Bots response",
             "content": {
               "application/json": {
                 "schema": {
@@ -1249,6 +1249,127 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups": {
+      "post": {
+        "summary": "Create a chat group",
+        "description": "Creates a new chat group for the authenticated user and adds chats to it.",
+        "tags": ["Groups"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "chat_ids"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the group (max 20 chars)",
+                    "maxLength": 20
+                  },
+                  "chat_ids": {
+                    "type": "array",
+                    "description": "Array of chat IDs to add to the group",
+                    "items": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "maxItems": 65
+                  }
+                }
+              },
+              "example": {
+                "name": "My Chat Group",
+                "chat_ids": [101, 102, 103]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Group ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Group name"
+                    },
+                    "chat_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "description": "Array of chat IDs added to the group"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 123,
+                  "name": "My Chat Group",
+                  "chat_ids": [101, 102, 103]
                 }
               }
             }

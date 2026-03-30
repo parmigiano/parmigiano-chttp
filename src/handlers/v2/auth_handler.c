@@ -109,7 +109,7 @@ void auth_confirm_email_handler_v2(chttpx_request_t* req, chttpx_response_t* res
              cHTTPX_i18n_t("email.code-instruction", ctx->lang), code, cHTTPX_i18n_t("email.code-expire", ctx->lang),
              cHTTPX_i18n_t("email.footer", ctx->lang));
 
-    if (send_email(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
+    if (send_email_async(payload.email, cHTTPX_i18n_t("email.subject", ctx->lang), buffer, NULL) != 0)
     {
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s: %s\"}", cHTTPX_i18n_t("error.sending-email", ctx->lang),
                               payload.email);

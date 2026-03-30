@@ -38,6 +38,6 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
 
 /* Group handlers */
 void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
-void group_chats_update_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+// void group_chats_update_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 
 #endif
