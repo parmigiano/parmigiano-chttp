@@ -73,7 +73,7 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
 
     s3_config_t s3_config = {
         .endpoint = getenv("S3_ENDPOINT"),
-        .bucket = getenv("S3_BUCKET"),
+        .bucket = getenv("S3_BUCKET_PUB"),
         .access_key = getenv("S3_ACCESS_KEY"),
         .secret_key = getenv("S3_SECRET_KEY"),
         .region = getenv("S3_REGION"),
@@ -84,7 +84,7 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
     snprintf(s3_avatar_key, sizeof(s3_avatar_key), "avatar_user_uid_%ld", ctx->user->user_uid);
 
     /* save to s3 storage */
-    url = s3_upload_file(f, req->filename, req->content_type, s3_avatar_key, &s3_config);
+    url = s3_upload_file_pub(f, req->filename, req->content_type, s3_avatar_key, &s3_config);
     fclose(f);
 
     if (!url || *url == '\0')

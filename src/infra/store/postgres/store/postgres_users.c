@@ -378,7 +378,7 @@ db_result_t db_user_profile_access_upd_by_uid(PGconn* conn, uint64_t user_uid, u
         return DB_OK;
 
     static char user_uid_str[32];
-    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+    snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
     params[param_count++] = user_uid_str;
@@ -435,7 +435,7 @@ db_result_t db_user_profile_upd_by_uid(PGconn* conn, uint64_t user_uid, user_pro
         return DB_OK;
 
     static char user_uid_str[32];
-    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+    snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
     params[param_count++] = user_uid_str;
@@ -478,7 +478,7 @@ db_result_t db_user_core_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profil
         return DB_OK;
 
     static char user_uid_str[32];
-    snprintf(user_uid_str, sizeof(user_uid_str), "%ld", user_uid);
+    snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
     params[param_count++] = user_uid_str;

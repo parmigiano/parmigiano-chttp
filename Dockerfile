@@ -19,7 +19,7 @@ RUN cp /usr/local/src/libs3/build/lib/libs3.so.4 /usr/local/lib/ \
 RUN curl -s https://raw.githubusercontent.com/netcorelink/libchttpx/main/scripts/install.sh | sh
 
 # Install mmdm
-RUN wget https://github.com/P3TERX/GeoLite.mmdb/releases/download/2026.03.28/GeoLite2-Country.mmdb \
+RUN wget https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-Country.mmdb \
     && mkdir -p /usr/local/share/GeoIP \
     && cp GeoLite2-Country.mmdb /usr/local/share/GeoIP/
 

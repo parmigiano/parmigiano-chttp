@@ -1276,6 +1276,78 @@
         }
       }
     },
+    "/media/chats/{chat_id}/upload": {
+      "post": {
+        "summary": "Upload raw file to chat",
+        "tags": ["Media"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      }
+    },
     "/groups": {
       "post": {
         "summary": "Create a chat group",
@@ -1373,6 +1445,206 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{group_id}": {
+      "put": {
+        "summary": "Edit a chat group",
+        "description": "Edit a chat group for the authenticated user and adds chats to it.",
+        "tags": ["Groups"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "description": "Group id",
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "example": 123
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "chat_ids"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the group (max 20 chars)",
+                    "maxLength": 20
+                  },
+                  "chat_ids": {
+                    "type": "array",
+                    "description": "Array of chat IDs to add to the group",
+                    "items": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "maxItems": 65
+                  }
+                }
+              },
+              "example": {
+                "name": "My Edit Chat Group",
+                "chat_ids": [101, 102, 103]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group edited successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Group ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Group name"
+                    },
+                    "chat_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "description": "Array of chat IDs added to the group"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 123,
+                  "name": "My Chat Group",
+                  "chat_ids": [101, 102, 103]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a chat group",
+        "description": "Delete a chat group for the authenticated user and delete chats in group.",
+        "tags": ["Groups"],
+        "parameters": [
+          {
+            "name": "X-Debug",
+            "in": "header",
+            "description": "Enabled dev mode (example skip PoW security)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "description": "Response language from the server (in which language the client is)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "en"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "description": "Group id",
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "example": 123
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Group delete successfully"
           },
           "400": {
             "description": "Validation error",

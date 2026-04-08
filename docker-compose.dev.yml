@@ -25,9 +25,11 @@ services:
   #     retries: 5
   redis:
     image: redis:8
-    command: redis-server --requirepass redispass
+    command: redis-server --requirepass redispass --appendonly yes --appendfsync everysec
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -61,3 +63,4 @@ services:
 volumes:
   ollama_phi_data:
   lt_data:
+  redis_data:

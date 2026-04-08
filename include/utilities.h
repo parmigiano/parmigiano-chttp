@@ -43,6 +43,9 @@ char* translate(const char* text, const char* source, const char* target);
 char* detect_lang(const char* text);
 char* get_translated_text(const char* json);
 
+/* mime.c */
+const char* map_mime_to_msg_type(const char* mime);
+
 /* ai.c */
 void start_ai_worker();
 void enqueue_ai_request(const char* text, void (*callback)(const char* result, void* arg), void* arg);

@@ -28,6 +28,10 @@ void routes(void)
     cHTTPX_RegisterRoute(&v2, "PATCH", "/chats/{chat_id}/cbackground", chat_upload_custom_bg_handler_v2);
     cHTTPX_RegisterRoute(&v2, "POST", "/chats/{chat_id}/translate", chat_translate_handler_v2);
     cHTTPX_RegisterRoute(&v2, "POST", "/chats/bot/ai", chat_bot_default_ai_handler_v2);
+    /* Media routes */
+    cHTTPX_RegisterRoute(&v2, "POST", "/media/chats/{chat_id}/upload", media_upload_in_chat_handler_v2);
     /* Group chats routes */
     cHTTPX_RegisterRoute(&v2, "POST", "/groups", group_chats_create_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "PUT", "/groups/{group_id}", group_chats_edit_handler_v2);
+    cHTTPX_RegisterRoute(&v2, "DELETE", "/groups/{group_id}", group_chats_delete_handler_v2);
 }

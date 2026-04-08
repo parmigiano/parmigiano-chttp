@@ -36,8 +36,12 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
 void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 
+/* Media handlers */
+void media_upload_in_chat_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+
 /* Group handlers */
 void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
-// void group_chats_update_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+void group_chats_edit_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
+void group_chats_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res);
 
 #endif

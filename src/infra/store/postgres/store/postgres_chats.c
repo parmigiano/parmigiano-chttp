@@ -54,7 +54,7 @@ db_result_t db_chat_create_members(PGconn* conn, uint64_t chat_id, chat_member_t
 
     /* convert -> char */
     static char chat_id_str[32];
-    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+    snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
 
     char user_uids[4096] = "{";
     char roles[4096] = "{";
@@ -97,7 +97,7 @@ db_result_t db_chat_create_setting(PGconn* conn, uint64_t chat_id, chat_setting_
 
     /* convert -> char */
     static char chat_id_str[32];
-    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+    snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
 
     const char* params[1] = {chat_id_str};
 
@@ -521,7 +521,7 @@ db_result_t db_chat_upd_cbackground_by_chat_id(PGconn* conn, char* cbackground, 
 
     /* convert -> chat */
     static char chat_id_str[32];
-    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", chat_id);
+    snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
 
     const char* params[2] = {cbackground, chat_id_str};
 

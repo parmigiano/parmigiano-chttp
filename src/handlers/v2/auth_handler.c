@@ -94,6 +94,8 @@ void auth_confirm_email_handler_v2(chttpx_request_t* req, chttpx_response_t* res
         goto cleanup;
     }
 
+    logger_info("auth_confirm_email_handler_v2 req={%s}: email={%s} code={%lu}", ctx->x_req_id, payload.email, code);
+
     /* Send email */
     /* ---------- */
     const char* html = "<body>"
@@ -563,7 +565,7 @@ void auth_delete_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* DELETE AVATAR S3 */
     s3_config_t s3_config = {
         .endpoint = getenv("S3_ENDPOINT"),
-        .bucket = getenv("S3_BUCKET"),
+        .bucket = getenv("S3_BUCKET_PUB"),
         .access_key = getenv("S3_ACCESS_KEY"),
         .secret_key = getenv("S3_SECRET_KEY"),
         .region = getenv("S3_REGION"),

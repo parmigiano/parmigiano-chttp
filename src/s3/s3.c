@@ -83,7 +83,7 @@ static char* create_unique_key(const char* filename, const char* key_p)
     return strdup(uniq_key);
 }
 
-char* s3_upload_file(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
+char* s3_upload_file_pub(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
 {
     if (!f || !filename || !cfg)
         return NULL;
@@ -118,6 +118,40 @@ char* s3_upload_file(FILE* f, const char* filename, char* content_type, const ch
     snprintf(url, sizeof(url), "https://%s/%s/%s", cfg->endpoint, cfg->bucket, unique_key);
 
     return strdup(url);
+}
+
+char* s3_upload_file_prv(FILE* f, const char* filename, char* content_type, const char* key, s3_config_t* cfg)
+{
+    if (!f || !filename || !cfg)
+        return NULL;
+
+    if (S3_initialize("parmigianochat/v2", S3_INIT_ALL, cfg->endpoint) != S3StatusOK)
+        return NULL;
+
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    rewind(f);
+
+    s3_upload_ctx_t upload_ctx = {.file = f};
+    S3BucketContext bucket = make_bucket_ctx(cfg);
+
+    S3PutObjectHandler handler = {.responseHandler = {.completeCallback = response_complete_cb, .propertiesCallback = NULL},
+                                  .putObjectDataCallback = put_object_cb};
+
+    char* unique_key = create_unique_key(filename, key);
+    if (!unique_key)
+        unique_key = strdup(key);
+
+    S3PutProperties put_props;
+    memset(&put_props, 0, sizeof(put_props));
+
+    put_props.contentType = content_type;
+
+    S3_put_object(&bucket, unique_key, (uint64_t)size, &put_props, NULL, 0, &handler, &upload_ctx);
+
+    S3_deinitialize();
+
+    return strdup(unique_key);
 }
 
 int s3_delete_file(const char* url, s3_config_t* cfg)

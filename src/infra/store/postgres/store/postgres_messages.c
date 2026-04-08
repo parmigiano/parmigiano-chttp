@@ -10,8 +10,8 @@ db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_messag
     static char chat_id_str[32];
     static char sender_uid_str[32];
 
-    snprintf(chat_id_str, sizeof(chat_id_str), "%ld", msg->chat_id);
-    snprintf(sender_uid_str, sizeof(sender_uid_str), "%ld", msg->sender_uid);
+    snprintf(chat_id_str, sizeof(chat_id_str), "%lu", msg->chat_id);
+    snprintf(sender_uid_str, sizeof(sender_uid_str), "%lu", msg->sender_uid);
 
     const char* params[4] = {chat_id_str, sender_uid_str, msg->content, msg->content_type};
 
@@ -56,29 +56,34 @@ db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_messag
     }
 }
 
-db_result_t db_message_create_status(PGconn* conn, uint64_t message_id, message_status_t* msg_status)
+db_result_t db_message_create_status(PGconn* conn, uint64_t message_id, uint64_t chat_id, uint64_t sender_uid)
 {
-    const char* query = "INSERT INTO message_statuses (message_id, receiver_uid) VALUES ($1, $2)";
+    const char* query = "INSERT INTO message_statuses (message_id, receiver_uid)\n"
+                        "SELECT $1, chat_members.user_uid\n"
+                        "FROM chat_members\n"
+                        "WHERE chat_members.chat_id = $2\n"
+                        "   AND chat_members.user_uid <> $3";
 
     static char message_id_str[32];
-    static char receiver_uid_str[32];
+    static char chat_id_str[32];
+    static char sender_uid_str[32];
 
-    snprintf(message_id_str, sizeof(message_id_str), "%ld", message_id);
-    snprintf(receiver_uid_str, sizeof(receiver_uid_str), "%ld", msg_status->receiver_uid);
+    snprintf(message_id_str, sizeof(message_id_str), "%lu", message_id);
+    snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);
+    snprintf(sender_uid_str, sizeof(sender_uid_str), "%lu", sender_uid);
 
-    const char* params[2] = {message_id_str, receiver_uid_str};
+    const char* params[3] = {message_id_str, chat_id_str, sender_uid_str};
 
-    db_result_t result = execute_sql(conn, query, params, 2);
+    db_result_t result = execute_sql(conn, query, params, 3);
     if (result != DB_OK)
     {
-        logger_error("db_message_create_status message_id={%lu} receiver_uid={%lu}: failed to exec sql: %s", message_id,
-                     msg_status->receiver_uid ? msg_status->receiver_uid : 0, PQerrorMessage(conn));
+        logger_error("db_message_create_status message_id={%lu} chat_id={%lu}: failed to exec sql: %s", message_id, chat_id, PQerrorMessage(conn));
     }
 
     return result;
 }
 
-db_result_t db_message_create_all(PGconn* conn, message_t* msg, message_status_t* msg_status)
+db_result_t db_message_create_all(PGconn* conn, message_t* msg)
 {
     execute_sql(conn, "BEGIN", NULL, 0);
 
@@ -89,7 +94,7 @@ db_result_t db_message_create_all(PGconn* conn, message_t* msg, message_status_t
     if (rc != DB_OK)
         goto rollback;
 
-    rc = db_message_create_status(conn, message_id, msg_status);
+    rc = db_message_create_status(conn, message_id, msg->chat_id, msg->sender_uid);
     if (rc != DB_OK)
         goto rollback;
 
