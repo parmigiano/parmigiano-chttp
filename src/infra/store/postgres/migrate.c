@@ -42,10 +42,10 @@ void run_migrations(PGconn* conn)
 {
     PGresult* res = NULL;
 
-    PQexec(conn, "CREATE TABLE IF NOT EXISTS schema_migrations ("
-                 "version INT PRIMARY KEY, "
-                 "applied_at TIMESTAMP DEFAULT now()"
-                 ")");
+    res = db_exec(conn, "CREATE TABLE IF NOT EXISTS schema_migrations ("
+                         "version INT PRIMARY KEY, "
+                         "applied_at TIMESTAMP DEFAULT now()"
+                         ")");
     PQclear(res);
 
     DIR* dir = opendir(FOLDER_SQL_MIGRATIONS);
@@ -77,7 +77,7 @@ void run_migrations(PGconn* conn)
         char check_sql[256];
         snprintf(check_sql, sizeof(check_sql), "SELECT 1 FROM schema_migrations WHERE version=%d", version);
 
-        res = PQexec(conn, check_sql);
+        res = db_exec(conn, check_sql);
         if (PQntuples(res) > 0)
         {
             PQclear(res);
@@ -98,10 +98,10 @@ void run_migrations(PGconn* conn)
 
         logger_info("Applying migration %s", files[i]);
 
-        res = PQexec(conn, "BEGIN");
+        res = db_exec(conn, "BEGIN");
         PQclear(res);
 
-        res = PQexec(conn, sql);
+        res = db_exec(conn, sql);
         free(sql);
 
         if (PQresultStatus(res) != PGRES_COMMAND_OK)
@@ -110,7 +110,8 @@ void run_migrations(PGconn* conn)
 
             fprintf(stderr, "migration failed: %s\n", PQerrorMessage(conn));
             PQclear(res);
-            PQexec(conn, "ROLLBACK");
+            res = db_exec(conn, "ROLLBACK");
+            PQclear(res);
             exit(1);
         }
         PQclear(res);
@@ -118,10 +119,10 @@ void run_migrations(PGconn* conn)
         char insert_sql[256];
         snprintf(insert_sql, sizeof(insert_sql), "INSERT INTO schema_migrations(version) VALUES(%d)", version);
 
-        res = PQexec(conn, insert_sql);
+        res = db_exec(conn, insert_sql);
         PQclear(res);
 
-        res = PQexec(conn, "COMMIT");
+        res = db_exec(conn, "COMMIT");
         PQclear(res);
 
         free(files[i]);

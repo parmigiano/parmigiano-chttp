@@ -31,7 +31,7 @@ void http_init(void)
     /* cHTTPX Server */
     chttpx_serv_t serv = {0};
 
-    size_t max_clients = 65536;
+    size_t max_clients = 8192;
 
     if (cHTTPX_Init(&serv, HTTPX_SERVER_PORT, &max_clients) != 0)
     {
@@ -103,10 +103,19 @@ void http_init(void)
     /* Free mmdb GeoIP */
     MMDB_close(&http_server->geoip);
 
+    if (http_server->conn)
+    {
+        db_close(http_server->conn);
+        http_server->conn = NULL;
+    }
+
+    redis_disconnect();
+
     /* Free CURL */
     curl_global_cleanup();
 
     free(http_server);
+    http_server = NULL;
 }
 
 static void _cors()

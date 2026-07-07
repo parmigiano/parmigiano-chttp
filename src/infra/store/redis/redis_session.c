@@ -3,6 +3,7 @@
 #include "encryption.h"
 #include "redis/redis_session.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +12,9 @@
 static char* session_key(const char* key)
 {
     char* buffer = malloc(strlen(key) + 9);
+    if (!buffer)
+        return NULL;
+
     sprintf(buffer, "session:%s", key);
     return buffer;
 }
@@ -18,6 +22,9 @@ static char* session_key(const char* key)
 static char* session_to_json(const session_t* sess)
 {
     cJSON* root = cJSON_CreateObject();
+    if (!root)
+        return NULL;
+
     cJSON_AddNumberToObject(root, "user_uid", sess->user_uid);
     cJSON_AddNumberToObject(root, "expires_at", sess->expires_at);
 
@@ -32,8 +39,17 @@ static int json_to_session(const char* json, session_t* sess)
     if (!root)
         return 0;
 
-    sess->user_uid = cJSON_GetObjectItem(root, "user_uid")->valuedouble;
-    sess->expires_at = cJSON_GetObjectItem(root, "expires_at")->valuedouble;
+    cJSON* user_uid_item = cJSON_GetObjectItem(root, "user_uid");
+    cJSON* expires_at_item = cJSON_GetObjectItem(root, "expires_at");
+
+    if (!cJSON_IsNumber(user_uid_item) || !cJSON_IsNumber(expires_at_item))
+    {
+        cJSON_Delete(root);
+        return 0;
+    }
+
+    sess->user_uid = (uint64_t)user_uid_item->valuedouble;
+    sess->expires_at = (uint64_t)expires_at_item->valuedouble;
 
     cJSON_Delete(root);
     return 1;
@@ -49,29 +65,44 @@ char* redis_session_create(const session_t* sess)
     char* session_id = NULL;
 
     session_id = encrypt(json);
-    key = session_key(session_id);
+    if (!session_id)
+        goto error;
 
-    redisReply* r = redisCommand(redis, "EXISTS %s", key);
+    key = session_key(session_id);
+    if (!key)
+        goto error;
+
+    redisReply* r = redis_command("EXISTS %s", key);
     if (!r)
         goto error;
 
     if (r->integer == 1)
     {
         freeReplyObject(r);
-        redisCommand(redis, "EXPIRE %s %d", REDIS_SESSION_TTL);
+        
+        r = redis_command("EXPIRE %s %d", key, REDIS_SESSION_TTL);
+        if (r)
+            freeReplyObject(r);
+
+        free(json);
         free(key);
         return session_id;
     }
 
     freeReplyObject(r);
-    redisCommand(redis, "SET %s %s EX %d", key, json, REDIS_SESSION_TTL);
 
+    r = redis_command("SET %s %s EX %d", key, json, REDIS_SESSION_TTL);
+    if (!r)
+        goto error;
+
+    freeReplyObject(r);
     free(json);
     free(key);
 
     return session_id;
 
 error:
+    free(json);
     free(key);
     free(session_id);
     return NULL;
@@ -80,8 +111,10 @@ error:
 session_t* redis_session_get(const char* session_id)
 {
     char* key = session_key(session_id);
+    if (!key)
+        return NULL;
 
-    redisReply* r = redisCommand(redis, "GET %s", key);
+    redisReply* r = redis_command("GET %s", key);
     free(key);
 
     if (!r || r->type == REDIS_REPLY_NIL)
@@ -92,6 +125,12 @@ session_t* redis_session_get(const char* session_id)
     }
 
     session_t* sess = malloc(sizeof(session_t));
+    if (!sess)
+    {
+        freeReplyObject(r);
+        return NULL;
+    }
+
     if (!json_to_session(r->str, sess))
     {
         free(sess);
@@ -105,7 +144,10 @@ session_t* redis_session_get(const char* session_id)
 int redis_session_refresh(const char* session_id)
 {
     char* key = session_key(session_id);
-    redisReply* r = redisCommand(redis, "EXPIRE %s %d", key, REDIS_SESSION_TTL);
+    if (!key)
+        return 0;
+
+    redisReply* r = redis_command("EXPIRE %s %d", key, REDIS_SESSION_TTL);
     free(key);
 
     int ok = r && r->integer == 1;
@@ -117,7 +159,10 @@ int redis_session_refresh(const char* session_id)
 int redis_session_delete(const char* session_id)
 {
     char* key = session_key(session_id);
-    redisReply* r = redisCommand(redis, "DEL %s", key);
+    if (!key)
+        return 0;
+
+    redisReply* r = redis_command("DEL %s", key);
     free(key);
 
     int ok = r && r->integer == 1;

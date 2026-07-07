@@ -111,7 +111,16 @@ void user_upload_avatar_handler_v2(chttpx_request_t* req, chttpx_response_t* res
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", url);
+    char* safe_url = escape_json_string(url);
+    if (safe_url)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe_url);
+        free(safe_url);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    }
 
 cleanup:
     if (url)

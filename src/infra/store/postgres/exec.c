@@ -2,6 +2,26 @@
 
 #include "logger.h"
 
+#include <pthread.h>
+
+static pthread_mutex_t pg_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+PGresult* db_exec(PGconn* conn, const char* query)
+{
+    pthread_mutex_lock(&pg_mutex);
+    PGresult* result = PQexec(conn, query);
+    pthread_mutex_unlock(&pg_mutex);
+    return result;
+}
+
+PGresult* db_exec_params(PGconn* conn, const char* query, int n_params, const char** params)
+{
+    pthread_mutex_lock(&pg_mutex);
+    PGresult* result = PQexecParams(conn, query, n_params, NULL, params, NULL, NULL, 0);
+    pthread_mutex_unlock(&pg_mutex);
+    return result;
+}
+
 db_result_t execute_sql(PGconn* conn, const char* query, const char** params, int n_params)
 {
     if (!conn || !query)
@@ -13,7 +33,7 @@ db_result_t execute_sql(PGconn* conn, const char* query, const char** params, in
 
     while (1)
     {
-        PGresult* result = PQexecParams(conn, query, n_params, NULL, params, NULL, NULL, 0);
+        PGresult* result = db_exec_params(conn, query, n_params, params);
         if (!result)
             return DB_ERROR;
 
@@ -55,7 +75,7 @@ db_result_t execute_select(PGconn* conn, const char* query, const char** params,
 
     while (1)
     {
-        PGresult* result = PQexecParams(conn, query, n_params, NULL, params, NULL, NULL, 0);
+        PGresult* result = db_exec_params(conn, query, n_params, params);
         if (!result)
             return DB_ERROR;
 
@@ -67,13 +87,42 @@ db_result_t execute_select(PGconn* conn, const char* query, const char** params,
             size_t n_cols = PQnfields(result);
 
             db_result_set_t* result_set = malloc(sizeof(db_result_set_t));
+            if (!result_set)
+            {
+                PQclear(result);
+                return DB_ERROR;
+            }
+
             result_set->n_rows = n_rows;
             result_set->rows = malloc(sizeof(db_row_t) * n_rows);
+            if (!result_set->rows)
+            {
+                free(result_set);
+                PQclear(result);
+                return DB_ERROR;
+            }
 
             for (size_t i = 0; i < n_rows; i++)
             {
                 result_set->rows[i].n_columns = n_cols;
                 result_set->rows[i].columns = malloc(sizeof(char*) * n_cols);
+                if (!result_set->rows[i].columns)
+                {
+                    for (size_t k = 0; k < i; k++)
+                    {
+                        for (size_t j = 0; j < result_set->rows[k].n_columns; j++)
+                            free(result_set->rows[k].columns[j]);
+
+                        free(result_set->rows[k].columns);
+                    }
+
+                    free(result_set->rows);
+                    free(result_set);
+                    
+                    PQclear(result);
+
+                    return DB_ERROR;
+                }
 
                 for (size_t j = 0; j < n_cols; j++)
                 {

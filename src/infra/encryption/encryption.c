@@ -60,7 +60,12 @@ char* encrypt(const char* plaintext)
 
     unsigned char* ciphertext = malloc(plaintext_len + block_size);
     if (!ciphertext)
+    {
+        EVP_CIPHER_CTX_free(ctx);
+        free(key);
+        free(iv);
         return NULL;
+    }
 
     int len = 0, clen = 0;
 

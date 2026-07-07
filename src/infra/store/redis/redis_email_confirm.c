@@ -17,7 +17,7 @@ void redis_mark_email_confirmed(const char* email)
 {
     char* key = email_confirmed_key(email);
 
-    redisReply* reply = redisCommand(redis, "SET %s 1 EX 1800", key);
+    redisReply* reply = redis_command("SET %s 1 EX 1800", key);
     freeReplyObject(reply);
 
     free(key);
@@ -27,7 +27,7 @@ int redis_is_email_confirmed(const char* email)
 {
     char* key = email_confirmed_key(email);
 
-    redisReply* reply = redisCommand(redis, "GET %s", key);
+    redisReply* reply = redis_command("GET %s", key);
 
     int confirmed = 0;
     if (reply && reply->type == REDIS_REPLY_STRING)

@@ -12,4 +12,10 @@ extern redisContext *redis;
 /* Initial redis connect */
 int redis_conn(void);
 
+/* Disconnect from redis */
+void redis_disconnect(void);
+
+/* Thread-safe redisCommand wrapper */
+redisReply* redis_command(const char* format, ...);
+
 #endif

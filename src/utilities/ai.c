@@ -13,6 +13,8 @@
 
 #include <libchttpx/libchttpx.h>
 
+#define AI_QUEUE_MAX 1024
+
 typedef struct Request
 {
     char* text;
@@ -25,6 +27,7 @@ typedef struct
 {
     Request* head;
     Request* tail;
+    size_t size;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 } RequestQueue;
@@ -34,6 +37,7 @@ static RequestQueue queue;
 static void init_ai_queue()
 {
     queue.head = queue.tail = NULL;
+    queue.size = 0;
 
     pthread_mutex_init(&queue.mutex, NULL);
     pthread_cond_init(&queue.cond, NULL);
@@ -42,12 +46,29 @@ static void init_ai_queue()
 void enqueue_ai_request(const char* text, void (*callback)(const char* result, void* arg), void* arg)
 {
     Request* req = malloc(sizeof(Request));
+    if (!req)
+        return;
+
     req->text = strdup(text);
+    if (!req->text)
+    {
+        free(req);
+        return;
+    }
+
     req->callback = callback;
     req->arg = arg;
     req->next = NULL;
 
     pthread_mutex_lock(&queue.mutex);
+
+    if (queue.size >= AI_QUEUE_MAX)
+    {
+        pthread_mutex_unlock(&queue.mutex);
+        free(req->text);
+        free(req);
+        return;
+    }
 
     if (queue.tail)
     {
@@ -58,6 +79,8 @@ void enqueue_ai_request(const char* text, void (*callback)(const char* result, v
     {
         queue.head = queue.tail = req;
     }
+
+    queue.size++;
 
     pthread_cond_signal(&queue.cond);
     pthread_mutex_unlock(&queue.mutex);
@@ -76,6 +99,8 @@ static Request* dequeue_ai_request()
     if (!queue.head)
         queue.tail = NULL;
 
+    queue.size--;
+
     pthread_mutex_unlock(&queue.mutex);
 
     return req;
@@ -89,7 +114,8 @@ static void* worker_thread(void* arg)
     {
         Request* req = dequeue_ai_request();
         char* result = call_ai_text(req->text);
-        req->callback(result, req->arg);
+        if (req->callback)
+            req->callback(result, req->arg);
 
         free(result);
         free(req->text);
@@ -115,7 +141,16 @@ void start_ai_worker()
 void callback_ai_send_response(const char* result, void* arg)
 {
     chttpx_response_t* res = (chttpx_response_t*)arg;
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", result);
+    char* safe = escape_json_string(result ? result : "");
+    if (safe)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe);
+        free(safe);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"AI response error\"}");
+    }
 }
 
 char* get_ollama_response(const char* json_str)
@@ -139,16 +174,21 @@ char* get_ollama_response(const char* json_str)
 
 char* call_ai_text(const char* prompt)
 {
-    CURL* curl;
-    CURLcode res;
-
     struct Memory chunk;
+
     chunk.response = malloc(1);
+    if (!chunk.response)
+        return NULL;
+
+    chunk.response[0] = '\0';
     chunk.size = 0;
 
-    curl = curl_easy_init();
+    CURL* curl = curl_easy_init();
     if (!curl)
+    {
+        free(chunk.response);
         return NULL;
+    }
 
     const char* ollama_phi_host = getenv("OLLAMA_PHI_HOST");
     if (!ollama_phi_host)
@@ -157,38 +197,42 @@ char* call_ai_text(const char* prompt)
     char url[256];
     snprintf(url, sizeof(url), "%s/api/generate", ollama_phi_host);
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    cJSON* body = cJSON_CreateObject();
+    cJSON_AddStringToObject(body, "model", "phi3:latest");
+    cJSON_AddStringToObject(body, "prompt", prompt);
+    cJSON_AddBoolToObject(body, "stream", 0);
+    char* json = cJSON_PrintUnformatted(body);
+    cJSON_Delete(body);
 
-    char json[1024];
-    snprintf(json, sizeof(json),
-             "{"
-             "\"model\": \"phi3:latest\","
-             "\"prompt\": \"%s\","
-             "\"stream\": false"
-             "}",
-             prompt);
+    if (!json)
+    {
+        curl_easy_cleanup(curl);
+        free(chunk.response);
+        return NULL;
+    }
 
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
 
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
+    curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&chunk);
 
-    res = curl_easy_perform(curl);
+    CURLcode res = curl_easy_perform(curl);
+
+    free(json);
+    
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
 
     if (res != CURLE_OK)
     {
         logger_error("call_ai_text: curl error: %s", curl_easy_strerror(res));
-        fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
+        free(chunk.response);
         return NULL;
     }
-
-    curl_easy_cleanup(curl);
-    curl_slist_free_all(headers);
 
     return chunk.response;
 }

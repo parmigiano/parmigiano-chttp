@@ -9,7 +9,7 @@ db_result_t db_group_chat_create(PGconn* conn, chat_group_t* chat_group, uint64_
     const char* query = "INSERT INTO chat_groups (user_uid, name) VALUES ($1, $2) RETURNING id";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", chat_group->user_uid);
 
     const char* params[2] = {user_uid_str, chat_group->name};
@@ -19,7 +19,7 @@ db_result_t db_group_chat_create(PGconn* conn, chat_group_t* chat_group, uint64_
 
     while (1)
     {
-        PGresult* res = PQexecParams(conn, query, 2, NULL, params, NULL, NULL, 0);
+        PGresult* res = db_exec_params(conn, query, 2, params);
         if (!res)
             return DB_ERROR;
 
@@ -61,10 +61,10 @@ db_result_t db_group_chat_add_chats(PGconn* conn, uint64_t user_uid, uint64_t gr
                         "ON CONFLICT DO NOTHING";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
-    static char group_id_str[32];
+    char group_id_str[32];
     snprintf(group_id_str, sizeof(group_id_str), "%lu", group_id);
 
     char chats_array[2048];
@@ -104,8 +104,8 @@ db_result_t db_group_chat_edit_name_by_group_id(PGconn* conn, uint64_t group_id,
                         "   AND user_uid = $3";
 
     /* convert -> str */
-    static char group_id_str[32];
-    static char user_uid_str[32];
+    char group_id_str[32];
+    char user_uid_str[32];
 
     snprintf(group_id_str, sizeof(group_id_str), "%lu", group_id);
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
@@ -138,8 +138,8 @@ db_result_t db_group_chat_edit_chats_by_group_id(PGconn* conn, uint64_t group_id
                         "ON CONFLICT DO NOTHING";
 
     /* convert -> str */
-    static char group_id_str[32];
-    static char user_uid_str[32];
+    char group_id_str[32];
+    char user_uid_str[32];
 
     snprintf(group_id_str, sizeof(group_id_str), "%lu", group_id);
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
@@ -212,7 +212,7 @@ db_result_t db_group_chat_delete(PGconn* conn, uint64_t user_uid, uint64_t group
 //                         "WHERE chat_groups.user_uid = $1\n"
 //                         "ORDER BY chat_groups.id";
 
-//     static char user_uid_str[32];
+//     char user_uid_str[32];
 //     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
 //     const char* params[1] = {user_uid_str};

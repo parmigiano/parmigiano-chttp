@@ -7,8 +7,8 @@ db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_messag
 {
     const char* query = "INSERT INTO messages (chat_id, sender_uid, content, content_type) VALUES ($1, $2, $3, $4) RETURNING id;";
 
-    static char chat_id_str[32];
-    static char sender_uid_str[32];
+    char chat_id_str[32];
+    char sender_uid_str[32];
 
     snprintf(chat_id_str, sizeof(chat_id_str), "%lu", msg->chat_id);
     snprintf(sender_uid_str, sizeof(sender_uid_str), "%lu", msg->sender_uid);
@@ -20,7 +20,7 @@ db_result_t db_message_create(PGconn* conn, message_t* msg, uint64_t* out_messag
 
     while (1)
     {
-        PGresult* res = PQexecParams(conn, query, 4, NULL, params, NULL, NULL, 0);
+        PGresult* res = db_exec_params(conn, query, 4, params);
         if (!res)
             return DB_ERROR;
 
@@ -64,9 +64,9 @@ db_result_t db_message_create_status(PGconn* conn, uint64_t message_id, uint64_t
                         "WHERE chat_members.chat_id = $2\n"
                         "   AND chat_members.user_uid <> $3";
 
-    static char message_id_str[32];
-    static char chat_id_str[32];
-    static char sender_uid_str[32];
+    char message_id_str[32];
+    char chat_id_str[32];
+    char sender_uid_str[32];
 
     snprintf(message_id_str, sizeof(message_id_str), "%lu", message_id);
     snprintf(chat_id_str, sizeof(chat_id_str), "%lu", chat_id);

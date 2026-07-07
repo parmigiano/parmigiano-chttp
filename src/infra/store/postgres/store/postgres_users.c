@@ -8,7 +8,7 @@ db_result_t db_user_core_create(PGconn* conn, user_core_t* user)
     const char* query = "INSERT INTO user_cores (user_uid, email, password, email_confirm) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* email_confirm_str = user->email_confirm ? "true" : "false";
@@ -29,7 +29,7 @@ db_result_t db_user_profile_create(PGconn* conn, user_profile_t* user)
     const char* query = "INSERT INTO user_profiles (user_uid, avatar, name, username) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[4] = {user_uid_str, user->avatar, user->name, user->username};
@@ -49,7 +49,7 @@ db_result_t db_user_profile_access_create(PGconn* conn, user_profile_access_t* u
                         "username_visible, phone_visible) VALUES ($1, $2, $3, $4)";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[4] = {user_uid_str, user->email_visible ? "true" : "false", user->username_visible ? "true" : "false",
@@ -70,7 +70,7 @@ db_result_t db_user_profile_active_create(PGconn* conn, user_active_t* user)
     const char* query = "INSERT INTO user_actives (user_uid) VALUES ($1)";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user->user_uid);
 
     const char* params[1] = {user_uid_str};
@@ -145,7 +145,7 @@ user_info_t* db_user_info_get_by_uid(PGconn* conn, uint64_t user_uid)
                         "LIMIT 1";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};
@@ -266,7 +266,7 @@ user_core_t* db_user_core_get_by_uid(PGconn* conn, uint64_t user_uid)
                         "WHERE user_uid = $1 LIMIT 1";
 
     /* convert -> char */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};
@@ -328,7 +328,7 @@ db_result_t db_user_profile_upd_avatar_by_uid(PGconn* conn, uint64_t user_uid, c
     const char* query = "UPDATE user_profiles SET avatar = $1 WHERE user_uid = $2";
 
     /* convert -> str */
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[2] = {avatar, user_uid_str};
@@ -377,7 +377,7 @@ db_result_t db_user_profile_access_upd_by_uid(PGconn* conn, uint64_t user_uid, u
     if (param_count == 0)
         return DB_OK;
 
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
@@ -434,7 +434,7 @@ db_result_t db_user_profile_upd_by_uid(PGconn* conn, uint64_t user_uid, user_pro
     if (param_count == 0)
         return DB_OK;
 
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
@@ -477,7 +477,7 @@ db_result_t db_user_core_upd_by_uid(PGconn* conn, uint64_t user_uid, user_profil
     if (param_count == 0)
         return DB_OK;
 
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     snprintf(query + strlen(query), sizeof(query) - strlen(query), " WHERE user_uid=$%d", i);
@@ -529,7 +529,7 @@ db_result_t db_user_del_by_uid(PGconn* conn, uint64_t user_uid)
 {
     const char* query = "DELETE FROM user_cores WHERE user_uid = $1";
 
-    static char user_uid_str[32];
+    char user_uid_str[32];
     snprintf(user_uid_str, sizeof(user_uid_str), "%lu", user_uid);
 
     const char* params[1] = {user_uid_str};

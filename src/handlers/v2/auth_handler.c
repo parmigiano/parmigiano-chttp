@@ -198,7 +198,16 @@ void auth_login_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
+    char* safe_session = escape_json_string(session_id);
+    if (safe_session)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe_session);
+        free(safe_session);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.session-creation-error", ctx->lang));
+    }
 
 cleanup:
     /* Free payloads */
@@ -244,6 +253,10 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     /* DB. get user core */
     user_core_t* user = NULL;
     char* password_hash = NULL;
+    user_core_t* user_core = NULL;
+    user_profile_t* user_profile = NULL;
+    user_profile_access_t* user_profile_access = NULL;
+    user_active_t* user_active = NULL;
 
     if (!cHTTPX_Parse(req, fields, (sizeof(fields) / sizeof(fields[0]))))
         goto errorjson;
@@ -322,7 +335,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     uid = (uid % 9000000000ULL) + 1000000000ULL;
 
     /* calloc user_core */
-    user_core_t* user_core = calloc(1, sizeof(user_core_t));
+    user_core = calloc(1, sizeof(user_core_t));
     if (!user_core)
     {
         logger_error("auth_create_handler_v2 req={%s}: calloc failed for user_core_t", ctx->x_req_id);
@@ -338,7 +351,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     user_core->password = password_hash ? strdup(password_hash) : NULL;
 
     /* calloc user_profile */
-    user_profile_t* user_profile = calloc(1, sizeof(user_profile_t));
+    user_profile = calloc(1, sizeof(user_profile_t));
     if (!user_profile)
     {
         logger_error("auth_create_handler_v2 req={%s}: calloc failed for user_profile_t", ctx->x_req_id);
@@ -354,7 +367,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     user_profile->avatar = NULL;
 
     /* calloc user_profile_access */
-    user_profile_access_t* user_profile_access = calloc(1, sizeof(user_profile_access_t));
+    user_profile_access = calloc(1, sizeof(user_profile_access_t));
     if (!user_profile_access)
     {
         logger_error("auth_create_handler_v2 req={%s}: calloc failed for user_profile_access_t", ctx->x_req_id);
@@ -370,7 +383,7 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     user_profile_access->phone_visible = false;
 
     /* calloc user_active */
-    user_active_t* user_active = calloc(1, sizeof(user_active_t));
+    user_active = calloc(1, sizeof(user_active_t));
     if (!user_active)
     {
         logger_error("auth_create_handler_v2 req={%s}: calloc failed for user_active_t", ctx->x_req_id);
@@ -424,7 +437,16 @@ void auth_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusCreated, "{\"message\": \"%s\"}", session_id);
+    char* safe_session = escape_json_string(session_id);
+    if (safe_session)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusCreated, "{\"message\": \"%s\"}", safe_session);
+        free(safe_session);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.session-creation-error", ctx->lang));
+    }
 
 cleanup:
     /* Free payloads */
@@ -437,6 +459,26 @@ cleanup:
 
     if (password_hash)
         free(password_hash);
+
+    if (user_core)
+    {
+        free(user_core->email);
+        free(user_core->password);
+        free(user_core);
+    }
+
+    if (user_profile)
+    {
+        free(user_profile->name);
+        free(user_profile->username);
+        free(user_profile);
+    }
+
+    if (user_profile_access)
+        free(user_profile_access);
+
+    if (user_active)
+        free(user_active);
 
     if (session_id)
         free(session_id);
@@ -516,7 +558,16 @@ void auth_verify_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", session_id);
+    char* safe_session = escape_json_string(session_id);
+    if (safe_session)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe_session);
+        free(safe_session);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.session-creation-error", ctx->lang));
+    }
 
 cleanup:
     /* Free payloads */

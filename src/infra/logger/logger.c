@@ -109,6 +109,10 @@ static void log_with_level(const char* level, const char* filename, const char* 
         tail = next;
         pthread_cond_signal(&cond);
     }
+    else
+    {
+        fprintf(stderr, "logger: queue overflow, dropping log message\n");
+    }
 
     pthread_mutex_unlock(&mutex);
 }

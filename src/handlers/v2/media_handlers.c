@@ -88,12 +88,23 @@ void media_upload_in_chat_handler_v2(chttpx_request_t* req, chttpx_response_t* r
     message->content = strdup(s3_key);
     message->content_type = strdup(mime_file_type);
 
+    if (!message->content || !message->content_type)
+    {
+        free(message->content);
+        free(message->content_type);
+        free(message);
+        
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+        goto cleanup;
+    }
+
     /* update in database */
     db_result_t message_db_result = db_message_create_all(http_server->conn, message);
 
     /* free memory */
     free(message->content);
     free(message->content_type);
+    free(message);
     message = NULL;
 
     switch (message_db_result)

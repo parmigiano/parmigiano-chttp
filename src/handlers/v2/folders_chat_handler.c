@@ -1,6 +1,7 @@
 #include "handlers.h"
 
 #include "httpx.h"
+#include "postgres/postgres.h"
 #include "postgres/postgres_group_chats.h"
 
 #include <cjson/cJSON.h>
@@ -49,13 +50,17 @@ void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res
     chat_group_t group = {.user_uid = ctx->user->user_uid, .name = payload.name};
 
     PGconn* conn = http_server->conn;
+    PGresult* pg_res = NULL;
 
     /* Begin transation db */
-    if (PQexec(conn, "BEGIN") == NULL)
+    pg_res = db_exec(conn, "BEGIN");
+    if (!pg_res || PQresultStatus(pg_res) != PGRES_COMMAND_OK)
     {
+        PQclear(pg_res);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
+    PQclear(pg_res);
 
     db_result_t r = db_group_chat_create(conn, &group, &group_id);
     if (r != DB_OK || group_id == 0)
@@ -65,11 +70,14 @@ void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res
     if (r != DB_OK)
         goto rollback;
 
-    if (PQexec(conn, "COMMIT") == NULL)
+    pg_res = db_exec(conn, "COMMIT");
+    if (!pg_res || PQresultStatus(pg_res) != PGRES_COMMAND_OK)
     {
+        PQclear(pg_res);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
+    PQclear(pg_res);
 
     /* Build JSON response */
     char chat_ids_json[2048];
@@ -90,7 +98,8 @@ void group_chats_create_handler_v2(chttpx_request_t* req, chttpx_response_t* res
     goto cleanup;
 
 rollback:
-    PQexec(conn, "ROLLBACK");
+    pg_res = db_exec(conn, "ROLLBACK");
+    PQclear(pg_res);
 
     switch (r)
     {
@@ -149,13 +158,17 @@ void group_chats_edit_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     }
 
     PGconn* conn = http_server->conn;
+    PGresult* pg_res = NULL;
 
     /* Begin transation db */
-    if (PQexec(conn, "BEGIN") == NULL)
+    pg_res = db_exec(conn, "BEGIN");
+    if (!pg_res || PQresultStatus(pg_res) != PGRES_COMMAND_OK)
     {
+        PQclear(pg_res);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
+    PQclear(pg_res);
 
     db_result_t r = db_group_chat_edit_name_by_group_id(conn, group_id, ctx->user->user_uid, payload.name);
     if (r != DB_OK)
@@ -165,11 +178,14 @@ void group_chats_edit_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     if (r != DB_OK)
         goto rollback;
 
-    if (PQexec(conn, "COMMIT") == NULL)
+    pg_res = db_exec(conn, "COMMIT");
+    if (!pg_res || PQresultStatus(pg_res) != PGRES_COMMAND_OK)
     {
+        PQclear(pg_res);
         *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.perform-database-operation", ctx->lang));
         goto cleanup;
     }
+    PQclear(pg_res);
 
     /* Build JSON response */
     char chat_ids_json[2048];
@@ -190,7 +206,8 @@ void group_chats_edit_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     goto cleanup;
 
 rollback:
-    PQexec(conn, "ROLLBACK");
+    pg_res = db_exec(conn, "ROLLBACK");
+    PQclear(pg_res);
 
     switch (r)
     {

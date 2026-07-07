@@ -20,7 +20,10 @@ char* translate(const char* text, const char* source, const char* target)
 
     curl = curl_easy_init();
     if (!curl)
+    {
+        free(chunk.response);
         return NULL;
+    }
 
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
@@ -73,7 +76,10 @@ char* detect_lang(const char* text)
 
     curl = curl_easy_init();
     if (!curl)
+    {
+        free(chunk.response);
         return NULL;
+    }
 
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");

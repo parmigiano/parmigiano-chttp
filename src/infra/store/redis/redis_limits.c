@@ -17,7 +17,10 @@ int redis_check_limit_email_and_increment(const char* email, int max_per_day)
     char key[128];
     snprintf(key, sizeof(key), "user:%s:requests:%s", email, date);
 
-    redisReply* reply = redisCommand(redis, "GET %s", key);
+    redisReply* reply = redis_command("GET %s", key);
+    if (!reply)
+        return 0;
+
     int count = 0;
     if (reply->type == REDIS_REPLY_STRING)
     {
@@ -30,11 +33,13 @@ int redis_check_limit_email_and_increment(const char* email, int max_per_day)
         return 0;
     }
 
-    reply = redisCommand(redis, "INCR %s", key);
-    freeReplyObject(reply);
+    reply = redis_command("INCR %s", key);
+    if (reply)
+        freeReplyObject(reply);
 
-    reply = redisCommand(redis, "EXPIRE %s %d", key, 24 * 60 * 60 - (tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec));
-    freeReplyObject(reply);
+    reply = redis_command("EXPIRE %s %d", key, 24 * 60 * 60 - (tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec));
+    if (reply)
+        freeReplyObject(reply);
 
     return 1;
 }

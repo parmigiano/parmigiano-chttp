@@ -333,7 +333,16 @@ void chat_upload_custom_bg_handler_v2(chttpx_request_t* req, chttpx_response_t* 
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", url);
+    char* safe_url = escape_json_string(url);
+    if (safe_url)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe_url);
+        free(safe_url);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    }
 
 cleanup:
     if (chat_setting)
@@ -374,6 +383,13 @@ void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
     cJSON* root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "text", payload.text);
     char* text_json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (!text_json)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+        goto cleanup;
+    }
 
     /* Detect language text */
     char* lang = detect_lang(text_json);
@@ -401,10 +417,21 @@ void chat_translate_handler_v2(chttpx_request_t* req, chttpx_response_t* res)
 
     free(lang);
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", get_translated_text(translated));
+    char* translated_text = get_translated_text(translated);
+    char* safe = escape_json_string(translated_text ? translated_text : "");
+    if (safe)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe);
+        free(safe);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    }
 
-    if (translated)
-        free(translated);
+    free(translated_text);
+    free(translated);
+    free(text_json);
 
 cleanup:
     /* Free payloads */
@@ -439,8 +466,17 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
     cJSON* root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "message", payload.message);
     char* message_json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (!message_json)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+        goto cleanup;
+    }
 
     char* bot_ai_response = call_ai_text(message_json);
+    free(message_json);
+
     if (bot_ai_response == NULL)
     {
         logger_error("chat_bot_default_ai_handler_v2 req={%s}: failed to get response by defailt AI BOT", ctx->x_req_id);
@@ -449,9 +485,21 @@ void chat_bot_default_ai_handler_v2(chttpx_request_t* req, chttpx_response_t* re
         goto cleanup;
     }
 
-    *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", get_ollama_response(bot_ai_response));
-
+    char* ai_text = get_ollama_response(bot_ai_response);
     free(bot_ai_response);
+
+    char* safe = escape_json_string(ai_text ? ai_text : "");
+    free(ai_text);
+
+    if (safe)
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusOK, "{\"message\": \"%s\"}", safe);
+        free(safe);
+    }
+    else
+    {
+        *res = cHTTPX_ResJson(cHTTPX_StatusInternalServerError, "{\"error\": \"%s\"}", cHTTPX_i18n_t("error.something-went-wrong", ctx->lang));
+    }
 
 cleanup:
     /* Free payloads */

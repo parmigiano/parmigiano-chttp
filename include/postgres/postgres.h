@@ -76,4 +76,8 @@ db_result_t execute_select(PGconn *conn, const char *query, const char **params,
 /* free memory SELECT */
 void free_result_set(db_result_set_t *rc);
 
+/* Thread-safe PQexec / PQexecParams wrappers */
+PGresult* db_exec(PGconn* conn, const char* query);
+PGresult* db_exec_params(PGconn* conn, const char* query, int n_params, const char** params);
+
 #endif

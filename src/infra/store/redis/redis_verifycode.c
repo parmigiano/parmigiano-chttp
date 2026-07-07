@@ -23,7 +23,7 @@ int redis_verifycode_create(const char* email, int code)
     char val[64];
     snprintf(val, sizeof(val), "%d", code);
 
-    redisReply* r = redisCommand(redis, "SETEX %s %d %s", key, REDIS_VERIFYCODE_TTL, val);
+    redisReply* r = redis_command("SETEX %s %d %s", key, REDIS_VERIFYCODE_TTL, val);
     if (!r)
     {
         free(key);
@@ -45,7 +45,7 @@ bool redis_verifycode_get(const char* email, int* out_code)
     if (!key)
         return false;
 
-    redisReply* r = redisCommand(redis, "GET %s", key);
+    redisReply* r = redis_command("GET %s", key);
     if (!r)
     {
         free(key);

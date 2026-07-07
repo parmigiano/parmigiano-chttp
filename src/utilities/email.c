@@ -84,6 +84,13 @@ int send_email_async(const char* to, const char* subject, const char* body, cons
 
     if (pthread_create(&thread, NULL, email_thread, task) != 0)
     {
+        free(task->to);
+        free(task->subject);
+        free(task->body);
+
+        if (task->cc)
+            free(task->cc);
+        
         free(task);
         return 1;
     }
