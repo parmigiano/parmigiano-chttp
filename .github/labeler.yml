@@ -1,0 +1,50 @@
+handlers:
+  - changed-files:
+      - any-glob-to-any-file: src/handlers/**
+
+middlewares:
+  - changed-files:
+      - any-glob-to-any-file: src/middlewares/**
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/infra/store/postgres/**
+          - include/postgres/**
+
+redis:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/infra/store/redis/**
+          - include/redis/**
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - Dockerfile
+          - docker-compose*.yml
+          - .dockerignore
+
+api-docs:
+  - changed-files:
+      - any-glob-to-any-file: docs/**
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/**
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file: src/infra/**
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file: scripts/**
+
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main.c
+          - src/httpx.c
+          - src/routes/**
+          - include/**

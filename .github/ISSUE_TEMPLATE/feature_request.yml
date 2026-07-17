@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new feature or improvement for parmigiano-chttp
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature you'd like to see in the parmigiano chat HTTP server.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: What problem does this solve? What is your use case?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you've thought about.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This changes the public HTTP API (v2)
+        - label: This requires a database migration
+        - label: This requires Swagger / API documentation updates
+        - label: This may be a breaking change for clients

@@ -1,3 +1,5 @@
+FROM noneandundefined/libchttpx:latest AS libchttpx
+
 FROM kalilinux/kali-rolling AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,7 +18,10 @@ RUN git clone https://github.com/bji/libs3.git \
 RUN cp /usr/local/src/libs3/build/lib/libs3.so.4 /usr/local/lib/ \
     && ln -sf /usr/local/lib/libs3.so.4 /usr/local/lib/libs3.so
 
-RUN curl -s https://raw.githubusercontent.com/netcorelink/libchttpx/main/scripts/install.sh | sh
+COPY --from=libchttpx /usr/local/lib/libchttpx.so /usr/local/lib/
+COPY --from=libchttpx /usr/local/lib/pkgconfig/libchttpx.pc /usr/local/lib/pkgconfig/
+COPY --from=libchttpx /usr/local/include/libchttpx /usr/local/include/libchttpx
+RUN ldconfig
 
 # Install mmdm
 RUN wget https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-Country.mmdb \
